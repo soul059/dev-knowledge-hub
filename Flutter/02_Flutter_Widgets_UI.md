@@ -12,76 +12,379 @@
 
 ## Introduction to Widgets
 
-In Flutter, everything is a widget. Widgets are the building blocks of Flutter applications and describe what their view should look like given their current configuration and state.
+In Flutter, everything is a widget. Widgets are the building blocks of Flutter applications and describe what their view should look like given their current configuration and state. Understanding widgets is fundamental to mastering Flutter development.
 
-### Widget Types
-- **StatelessWidget**: Immutable widgets that don't change
-- **StatefulWidget**: Widgets that can change state over time
-- **InheritedWidget**: Widgets that propagate information down the widget tree
+### The Widget Philosophy
+
+Flutter's approach to UI is fundamentally different from traditional mobile development:
+
+1. **Declarative UI**: Instead of telling the system HOW to change the UI, you describe WHAT the UI should look like for any given state
+2. **Composition**: Complex UIs are built by composing simple widgets together
+3. **Immutability**: Widgets are immutable configurations that describe the UI at a specific moment in time
+
+### Widget Types and Their Purpose
+
+#### **StatelessWidget**: The Building Blocks
+StatelessWidget is used for UI elements that never change. Once built, they remain the same until they're replaced entirely.
+
+**Characteristics:**
+- Immutable (cannot change after creation)
+- No internal state to manage
+- Rebuilds only when parent widget changes
+- More efficient in terms of performance
+- Perfect for static content
+
+**When to use StatelessWidget:**
+- Displaying static text, images, or icons
+- Layout widgets that don't change
+- UI components that only depend on external data
+- Reusable components with fixed behavior
+
+#### **StatefulWidget**: The Dynamic Elements
+StatefulWidget is used for UI elements that can change over time based on user interaction or other factors.
+
+**Characteristics:**
+- Can maintain mutable state
+- Can trigger rebuilds using setState()
+- Has a lifecycle with multiple methods
+- Slightly more overhead than StatelessWidget
+
+**When to use StatefulWidget:**
+- Interactive elements (buttons, forms, checkboxes)
+- Animations and transitions
+- Real-time data display
+- User input handling
+
+#### **InheritedWidget**: The Data Propagators
+InheritedWidget is used to efficiently propagate information down the widget tree without explicitly passing data through every widget constructor.
+
+**Use cases:**
+- Theme data
+- User authentication state
+- App-wide configuration
+- Shared data across multiple widgets
+
+### Widget Lifecycle Deep Dive
+
+Understanding the widget lifecycle is crucial for managing resources and building efficient apps:
+
+#### StatelessWidget Lifecycle
+```dart
+class MyStatelessWidget extends StatelessWidget {
+  const MyStatelessWidget({Key? key}) : super(key: key);
+  
+  @override
+  Widget build(BuildContext context) {
+    // This method is called every time the widget needs to be rendered
+    // It should be pure (no side effects) and fast
+    print('StatelessWidget build called');
+    return Container(
+      child: Text('I am stateless'),
+    );
+  }
+}
+```
+
+#### StatefulWidget Lifecycle (Detailed)
+```dart
+class MyStatefulWidget extends StatefulWidget {
+  final String title;
+  
+  const MyStatefulWidget({Key? key, required this.title}) : super(key: key);
+  
+  @override
+  _MyStatefulWidgetState createState() {
+    print('createState called');
+    return _MyStatefulWidgetState();
+  }
+}
+
+class _MyStatefulWidgetState extends State<MyStatefulWidget> {
+  String _message = '';
+  
+  @override
+  void initState() {
+    // Called once when the widget is inserted into the tree
+    // Perfect for one-time initialization
+    super.initState();
+    print('initState called');
+    _message = 'Widget initialized: ${widget.title}';
+    
+    // Good place to:
+    // - Initialize controllers
+    // - Start animations
+    // - Subscribe to streams
+    // - Set up listeners
+  }
+  
+  @override
+  void didChangeDependencies() {
+    // Called when a dependency of this State object changes
+    // Called after initState and whenever dependencies change
+    super.didChangeDependencies();
+    print('didChangeDependencies called');
+    
+    // Good place to:
+    // - React to theme changes
+    // - Respond to locale changes
+    // - Handle MediaQuery changes
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    // Called whenever the widget needs to be built/rebuilt
+    // Should be pure and fast
+    print('build called');
+    
+    return Container(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Text(widget.title), // Access widget properties
+          Text(_message),     // Access state
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _message = 'Button pressed at ${DateTime.now()}';
+              });
+            },
+            child: Text('Update State'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  @override
+  void didUpdateWidget(MyStatefulWidget oldWidget) {
+    // Called when parent widget changes and needs to update this widget
+    super.didUpdateWidget(oldWidget);
+    print('didUpdateWidget called');
+    
+    // Compare old and new widget properties
+    if (oldWidget.title != widget.title) {
+      setState(() {
+        _message = 'Title changed to: ${widget.title}';
+      });
+    }
+  }
+  
+  @override
+  void setState(VoidCallback fn) {
+    // Called to notify framework that state has changed
+    print('setState called');
+    super.setState(fn);
+    // This triggers a rebuild of the widget
+  }
+  
+  @override
+  void deactivate() {
+    // Called when widget is removed from tree (temporarily)
+    super.deactivate();
+    print('deactivate called');
+    
+    // Widget might be reinserted later
+    // Rarely overridden
+  }
+  
+  @override
+  void dispose() {
+    // Called when widget is permanently removed from tree
+    super.dispose();
+    print('dispose called');
+    
+    // Clean up resources:
+    // - Dispose controllers
+    // - Cancel timers
+    // - Close streams
+    // - Remove listeners
+  }
+}
+```
+
+### Widget Tree Optimization
+
+The widget tree is rebuilt frequently in Flutter, so optimization is important:
+
+#### 1. Use const constructors
+```dart
+// Good: Const widgets are cached and reused
+const Text('Static text')
+const Icon(Icons.star)
+const SizedBox(height: 16)
+
+// Bad: New instances created every build
+Text('Static text')
+Icon(Icons.star)
+SizedBox(height: 16)
+```
+
+#### 2. Extract widgets appropriately
+```dart
+// Good: Extract stable parts into separate widgets
+class MyWidget extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const Header(), // Const widget, won't rebuild
+        DynamicContent(), // Only this rebuilds when needed
+      ],
+    );
+  }
+}
+
+class Header extends StatelessWidget {
+  const Header({Key? key}) : super(key: key);
+  
+  @override
+  Widget build(BuildContext context) {
+    return Text('I never change');
+  }
+}
+```
+
+#### 3. Use keys wisely
+```dart
+// Keys help Flutter identify widgets during rebuilds
+ListView(
+  children: items.map((item) => 
+    ListTile(
+      key: ValueKey(item.id), // Unique key for each item
+      title: Text(item.name),
+    )
+  ).toList(),
+)
+```
 
 ## Basic Widgets
 
-### Text Widget
+Basic widgets are the fundamental building blocks that you'll use in almost every Flutter application. These widgets handle the most common UI needs: displaying text, images, and icons.
+
+### Text Widget - The Foundation of Content
+
+The Text widget is arguably the most important widget in Flutter. It displays text content and provides extensive customization options.
+
+#### Basic Text Usage
 ```dart
 class TextExamples extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Text Examples')),
-      body: Padding(
+      appBar: AppBar(title: Text('Text Widget Examples')),
+      body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Basic text
+            // 1. Basic text - simplest form
             Text('Hello, Flutter!'),
             
-            // Styled text
+            SizedBox(height: 16),
+            
+            // 2. Styled text with custom appearance
             Text(
-              'Styled Text',
+              'This is styled text',
               style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-                decoration: TextDecoration.underline,
+                fontSize: 24,              // Size of the text
+                fontWeight: FontWeight.bold, // Make it bold
+                color: Colors.blue,        // Text color
+                letterSpacing: 1.2,        // Space between letters
+                wordSpacing: 2.0,          // Space between words
+                height: 1.5,               // Line height multiplier
+                decoration: TextDecoration.underline, // Underline text
+                decorationColor: Colors.red,    // Color of underline
+                decorationThickness: 2.0,       // Thickness of underline
+                fontStyle: FontStyle.italic,    // Make it italic
               ),
             ),
             
-            // Text with custom styling
+            SizedBox(height: 16),
+            
+            // 3. Text with custom font family
             Text(
               'Custom Font Text',
-              style: GoogleFonts.roboto(
-                fontSize: 18,
-                fontStyle: FontStyle.italic,
-                letterSpacing: 1.2,
+              style: TextStyle(
+                fontSize: 20,
+                fontFamily: 'Roboto',  // Custom font (must be added to pubspec.yaml)
+                fontWeight: FontWeight.w300,
+                color: Colors.purple,
               ),
             ),
             
-            // Rich text (multiple styles)
+            SizedBox(height: 16),
+            
+            // 4. Rich text with multiple styles in one widget
             RichText(
               text: TextSpan(
-                style: DefaultTextStyle.of(context).style,
+                // Default style for all text
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.black,
+                ),
                 children: [
-                  TextSpan(text: 'Hello '),
+                  TextSpan(text: 'This is '),
                   TextSpan(
-                    text: 'Flutter',
+                    text: 'bold text',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                  TextSpan(text: ' and this is '),
+                  TextSpan(
+                    text: 'italic text',
+                    style: TextStyle(
+                      fontStyle: FontStyle.italic,
                       color: Colors.blue,
                     ),
                   ),
-                  TextSpan(text: ' World!'),
+                  TextSpan(text: ' in the same widget.'),
                 ],
               ),
             ),
             
-            // Text with overflow handling
+            SizedBox(height: 16),
+            
+            // 5. Text with overflow handling
             Container(
-              width: 200,
+              width: 200, // Constrain width to demonstrate overflow
               child: Text(
-                'This is a very long text that will overflow',
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
+                'This is a very long text that will overflow if not handled properly.',
+                overflow: TextOverflow.ellipsis, // Show ... when text overflows
+                maxLines: 2, // Limit to 2 lines
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+            
+            SizedBox(height: 16),
+            
+            // 6. Selectable text (user can copy)
+            SelectableText(
+              'This text can be selected and copied by the user.',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.green,
+              ),
+            ),
+            
+            SizedBox(height: 16),
+            
+            // 7. Text with alignment in a container
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Centered Text',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],
@@ -92,31 +395,82 @@ class TextExamples extends StatelessWidget {
 }
 ```
 
-### Image Widget
+### Image Widget - Displaying Visual Content
+
+Images are crucial for creating engaging user interfaces. Flutter provides several ways to display images with different sources and styling options.
+
+#### Image Sources
+1. **Network Images**: Load from internet URLs
+2. **Asset Images**: Include with your app bundle
+3. **File Images**: Load from device storage
+4. **Memory Images**: Load from memory bytes
+
+#### Key Properties Explained
+
+**Size Control:**
+- `width` & `height`: Define image dimensions
+- `fit`: How image should resize to fit available space
+
+**BoxFit Options:**
+- `BoxFit.cover`: Fills container, may crop image
+- `BoxFit.contain`: Fits entirely within container
+- `BoxFit.fill`: Stretches to fill container (may distort)
+- `BoxFit.fitWidth`: Fits width, height may overflow
+- `BoxFit.fitHeight`: Fits height, width may overflow
+
+**Error & Loading Handling:**
+- `loadingBuilder`: Show progress while loading
+- `errorBuilder`: Show fallback when loading fails
+
 ```dart
 class ImageExamples extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Image Examples')),
+      appBar: AppBar(title: Text('Image Widget Examples')),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
           children: [
-            // Network image
+            // 1. Network image with comprehensive error handling
+            Text(
+              'Network Image with Loading & Error Handling:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
             Image.network(
               'https://picsum.photos/300/200',
               width: 300,
               height: 200,
               fit: BoxFit.cover,
               loadingBuilder: (context, child, loadingProgress) {
+                // Show loading indicator while image loads
                 if (loadingProgress == null) return child;
-                return Center(
-                  child: CircularProgressIndicator(
-                    value: loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
-                        : null,
+                return Container(
+                  width: 300,
+                  height: 200,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                // Show error widget if image fails to load
+                return Container(
+                  width: 300,
+                  height: 200,
+                  color: Colors.grey[300],
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error, size: 50, color: Colors.red),
+                      Text('Failed to load image'),
+                    ],
                   ),
                 );
               },
@@ -124,16 +478,53 @@ class ImageExamples extends StatelessWidget {
             
             SizedBox(height: 20),
             
-            // Asset image
-            Image.asset(
-              'assets/images/flutter_logo.png',
-              width: 100,
-              height: 100,
+            // 2. Asset image setup instructions
+            Text(
+              'Asset Image Setup:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'To use asset images:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Text('1. Create assets/images/ folder in project root'),
+                  Text('2. Add images to the folder'),
+                  Text('3. Update pubspec.yaml:'),
+                  SizedBox(height: 8),
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    color: Colors.grey[200],
+                    child: Text(
+                      'flutter:\n  assets:\n    - assets/images/',
+                      style: TextStyle(fontFamily: 'monospace'),
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text('4. Use: Image.asset(\'assets/images/photo.jpg\')'),
+                ],
+              ),
             ),
             
             SizedBox(height: 20),
             
-            // Circular image with border
+            // 3. Circular image with border (profile picture style)
+            Text(
+              'Circular Profile Image:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
             Container(
               width: 120,
               height: 120,
@@ -141,134 +532,710 @@ class ImageExamples extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.blue, width: 3),
                 image: DecorationImage(
-                  image: NetworkImage('https://picsum.photos/120/120'),
+                  image: NetworkImage('https://picsum.photos/seed/profile/120/120'),
                   fit: BoxFit.cover,
                 ),
+                // Add shadow for depth
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.5),
+                    spreadRadius: 2,
+                    blurRadius: 5,
+                    offset: Offset(0, 3),
+                  ),
+                ],
               ),
             ),
             
             SizedBox(height: 20),
             
-            // ClipRRect for rounded corners
+            // 4. Rounded rectangle image using ClipRRect
+            Text(
+              'Rounded Corner Image:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
             ClipRRect(
               borderRadius: BorderRadius.circular(15),
               child: Image.network(
-                'https://picsum.photos/250/150',
+                'https://picsum.photos/seed/rounded/250/150',
                 width: 250,
                 height: 150,
                 fit: BoxFit.cover,
               ),
             ),
+            
+            SizedBox(height: 20),
+            
+            // 5. BoxFit comparison examples
+            Text(
+              'BoxFit Comparison:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildBoxFitExample('cover', BoxFit.cover),
+                _buildBoxFitExample('contain', BoxFit.contain),
+                _buildBoxFitExample('fill', BoxFit.fill),
+              ],
+            ),
+            
+            SizedBox(height: 20),
+            
+            // 6. Image with overlay and gradient
+            Text(
+              'Image with Text Overlay:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Container(
+              width: 300,
+              height: 200,
+              child: Stack(
+                children: [
+                  // Background image
+                  Container(
+                    width: 300,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      image: DecorationImage(
+                        image: NetworkImage('https://picsum.photos/seed/overlay/300/200'),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  // Gradient overlay
+                  Container(
+                    width: 300,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.7),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Text overlay
+                  Positioned(
+                    bottom: 16,
+                    left: 16,
+                    right: 16,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Beautiful Landscape',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Perfect example of image overlay technique',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+  
+  // Helper method to build BoxFit examples
+  Widget _buildBoxFitExample(String label, BoxFit fit) {
+    return Column(
+      children: [
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(7),
+            child: Image.network(
+              'https://picsum.photos/seed/$label/100/200',
+              fit: fit,
+            ),
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
 }
 ```
 
-### Icon Widget
+#### Performance Tips for Images
+
+1. **Optimize Network Images:**
+   - Use appropriate image sizes for your UI
+   - Consider using cached_network_image package for better caching
+   - Implement loading placeholders
+
+2. **Asset Image Best Practices:**
+   - Provide multiple resolutions (1x, 2x, 3x folders)
+   - Use appropriate formats (WebP for smaller sizes)
+   - Compress images before adding to assets
+
+3. **Memory Management:**
+   - Large images consume significant memory
+   - Use appropriate BoxFit to avoid unnecessary scaling
+   - Consider using Image.memory for dynamic images
+
+```dart
+// Example: Creating resolution-aware asset images
+// assets/images/2.0x/logo.png  (for high-DPI screens)
+// assets/images/3.0x/logo.png  (for very high-DPI screens)
+// assets/images/logo.png       (base resolution)
+
+Image.asset('assets/images/logo.png') // Flutter automatically picks appropriate resolution
+```
+
+### Icon Widget - Visual Symbols and Actions
+
+Icons are essential UI elements that provide visual cues and represent actions or concepts. Flutter includes a comprehensive set of Material Design icons and supports custom icons.
+
+#### Icon Sources
+1. **Material Icons**: Built-in icons from Google's Material Design
+2. **Cupertino Icons**: iOS-style icons (requires cupertino_icons package)
+3. **Custom Icons**: Your own icon fonts or image-based icons
+4. **Font Awesome**: Popular icon library (requires font_awesome_flutter package)
+
+#### Key Properties Explained
+
+**Appearance:**
+- `size`: Icon size in logical pixels (double)
+- `color`: Icon color (can be null for default theme color)
+
+**Accessibility:**
+- `semanticLabel`: Screen reader description
+- `textDirection`: For directional icons (LTR/RTL)
+
 ```dart
 class IconExamples extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Icon Examples')),
-      body: Padding(
+      appBar: AppBar(title: Text('Icon Widget Examples')),
+      body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Basic icons
+            // 1. Basic Material Design icons
+            Text(
+              'Basic Material Design Icons:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                Icon(Icons.home),
-                Icon(Icons.star, color: Colors.yellow),
-                Icon(Icons.favorite, color: Colors.red, size: 32),
-                Icon(Icons.settings, color: Colors.grey[600]),
+                Column(
+                  children: [
+                    Icon(Icons.home, size: 32),
+                    SizedBox(height: 4),
+                    Text('home', style: TextStyle(fontSize: 12)),
+                  ],
+                ),
+                Column(
+                  children: [
+                    Icon(Icons.star, color: Colors.yellow[700], size: 32),
+                    SizedBox(height: 4),
+                    Text('star', style: TextStyle(fontSize: 12)),
+                  ],
+                ),
+                Column(
+                  children: [
+                    Icon(Icons.favorite, color: Colors.red, size: 32),
+                    SizedBox(height: 4),
+                    Text('favorite', style: TextStyle(fontSize: 12)),
+                  ],
+                ),
+                Column(
+                  children: [
+                    Icon(Icons.settings, color: Colors.grey[600], size: 32),
+                    SizedBox(height: 4),
+                    Text('settings', style: TextStyle(fontSize: 12)),
+                  ],
+                ),
               ],
             ),
             
             SizedBox(height: 30),
             
-            // Custom icon with background
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.notifications,
-                color: Colors.white,
-                size: 28,
-              ),
+            // 2. Icon sizes comparison
+            Text(
+              'Icon Size Variations:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Column(
+                  children: [
+                    Icon(Icons.star, color: Colors.amber, size: 16),
+                    SizedBox(height: 4),
+                    Text('16px', style: TextStyle(fontSize: 10)),
+                  ],
+                ),
+                Column(
+                  children: [
+                    Icon(Icons.star, color: Colors.amber, size: 24),
+                    SizedBox(height: 4),
+                    Text('24px', style: TextStyle(fontSize: 10)),
+                  ],
+                ),
+                Column(
+                  children: [
+                    Icon(Icons.star, color: Colors.amber, size: 32),
+                    SizedBox(height: 4),
+                    Text('32px', style: TextStyle(fontSize: 10)),
+                  ],
+                ),
+                Column(
+                  children: [
+                    Icon(Icons.star, color: Colors.amber, size: 48),
+                    SizedBox(height: 4),
+                    Text('48px', style: TextStyle(fontSize: 10)),
+                  ],
+                ),
+                Column(
+                  children: [
+                    Icon(Icons.star, color: Colors.amber, size: 64),
+                    SizedBox(height: 4),
+                    Text('64px', style: TextStyle(fontSize: 10)),
+                  ],
+                ),
+              ],
             ),
             
             SizedBox(height: 30),
             
-            // Icon buttons
+            // 3. Icons with custom backgrounds and styling
+            Text(
+              'Styled Icon Containers:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                IconButton(
-                  icon: Icon(Icons.thumb_up),
-                  onPressed: () {},
+                // Circular background
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.notifications,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                // Rounded rectangle background
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.check,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                // Gradient background
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.purple, Colors.pink],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.favorite,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                // Border style
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.orange, width: 2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.star,
+                    color: Colors.orange,
+                    size: 24,
+                  ),
+                ),
+              ],
+            ),
+            
+            SizedBox(height: 30),
+            
+            // 4. Interactive IconButtons
+            Text(
+              'Interactive Icon Buttons:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildIconButton(
+                  icon: Icons.thumb_up,
+                  label: 'Like',
                   color: Colors.blue,
+                  onPressed: () => print('Like pressed'),
                 ),
-                IconButton(
-                  icon: Icon(Icons.share),
-                  onPressed: () {},
+                _buildIconButton(
+                  icon: Icons.share,
+                  label: 'Share',
                   color: Colors.green,
+                  onPressed: () => print('Share pressed'),
                 ),
-                IconButton(
-                  icon: Icon(Icons.bookmark),
-                  onPressed: () {},
+                _buildIconButton(
+                  icon: Icons.bookmark,
+                  label: 'Save',
                   color: Colors.orange,
+                  onPressed: () => print('Save pressed'),
+                ),
+                _buildIconButton(
+                  icon: Icons.more_vert,
+                  label: 'More',
+                  color: Colors.grey[600]!,
+                  onPressed: () => print('More pressed'),
                 ),
               ],
+            ),
+            
+            SizedBox(height: 30),
+            
+            // 5. Common icon categories
+            Text(
+              'Common Icon Categories:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
+            _buildIconCategory('Navigation', [
+              Icons.home,
+              Icons.menu,
+              Icons.arrow_back,
+              Icons.arrow_forward,
+              Icons.close,
+            ]),
+            SizedBox(height: 16),
+            _buildIconCategory('Actions', [
+              Icons.add,
+              Icons.edit,
+              Icons.delete,
+              Icons.save,
+              Icons.search,
+            ]),
+            SizedBox(height: 16),
+            _buildIconCategory('Communication', [
+              Icons.call,
+              Icons.message,
+              Icons.email,
+              Icons.notifications,
+              Icons.share,
+            ]),
+            SizedBox(height: 16),
+            _buildIconCategory('Media', [
+              Icons.play_arrow,
+              Icons.pause,
+              Icons.stop,
+              Icons.volume_up,
+              Icons.camera,
+            ]),
+            
+            SizedBox(height: 30),
+            
+            // 6. Icon with badge (notification count)
+            Text(
+              'Icon with Badge:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
+            Center(
+              child: Stack(
+                children: [
+                  Icon(
+                    Icons.notifications,
+                    size: 48,
+                    color: Colors.grey[700],
+                  ),
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+                      child: Text(
+                        '3',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
     );
   }
+  
+  // Helper method to build icon buttons with labels
+  Widget _buildIconButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Column(
+      children: [
+        IconButton(
+          icon: Icon(icon),
+          onPressed: onPressed,
+          color: color,
+          iconSize: 28,
+          splashRadius: 24, // Control splash effect size
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: color),
+        ),
+      ],
+    );
+  }
+  
+  // Helper method to build icon categories
+  Widget _buildIconCategory(String title, List<IconData> icons) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title + ':',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: icons.map((icon) => Icon(icon, size: 24, color: Colors.grey[700])).toList(),
+        ),
+      ],
+    );
+  }
 }
 ```
 
-### Container Widget
+#### Popular Material Icons Reference
+
+**Navigation Icons:**
+- `Icons.home` - Home page
+- `Icons.menu` - Hamburger menu
+- `Icons.arrow_back` - Back navigation
+- `Icons.close` - Close dialog/screen
+
+**Action Icons:**
+- `Icons.add` - Add new item
+- `Icons.edit` - Edit content
+- `Icons.delete` - Delete item
+- `Icons.search` - Search functionality
+- `Icons.filter_list` - Filter options
+
+**Status Icons:**
+- `Icons.check` - Success/completed
+- `Icons.error` - Error state
+- `Icons.warning` - Warning state
+- `Icons.info` - Information
+
+**Media Icons:**
+- `Icons.play_arrow` - Play media
+- `Icons.pause` - Pause media
+- `Icons.volume_up` - Audio controls
+- `Icons.camera` - Camera functionality
+
+#### Custom Icons Setup
+
+```dart
+// To use custom icons:
+// 1. Create icon font or use images
+// 2. Add to pubspec.yaml:
+// fonts:
+//   - family: CustomIcons
+//     fonts:
+//       - asset: assets/fonts/custom_icons.ttf
+
+// 3. Use in code:
+Icon(
+  IconData(0xe801, fontFamily: 'CustomIcons'),
+  size: 24,
+  color: Colors.blue,
+)
+
+// For Font Awesome icons:
+// Add dependency: font_awesome_flutter: ^10.4.0
+// Import: import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+// Use: FaIcon(FontAwesomeIcons.github)
+```
+
+#### Accessibility Best Practices
+
+```dart
+// Always provide semantic labels for screen readers
+Icon(
+  Icons.star,
+  semanticLabel: 'Mark as favorite',
+)
+
+// For interactive icons, use IconButton with proper tooltip
+IconButton(
+  icon: Icon(Icons.delete),
+  onPressed: () => _deleteItem(),
+  tooltip: 'Delete item', // Shows on long press
+)
+```
+
+### Container Widget - The Multi-Purpose Layout Tool
+
+Container is one of the most versatile widgets in Flutter. It combines common painting, positioning, and sizing widgets into a single convenient widget.
+
+#### Container's Capabilities
+1. **Sizing**: Control width, height, and constraints
+2. **Decoration**: Add colors, gradients, borders, shadows, and shapes
+3. **Positioning**: Add margins and padding
+4. **Transformation**: Apply matrix transformations
+5. **Clipping**: Control how child content is clipped
+
+#### Key Properties Explained
+
+**Size Control:**
+- `width` & `height`: Explicit dimensions
+- `constraints`: Min/max width and height limits
+
+**Spacing:**
+- `margin`: Space outside the container (affects layout)
+- `padding`: Space inside the container (affects child positioning)
+
+**Visual Styling:**
+- `color`: Simple background color (cannot be used with decoration)
+- `decoration`: Advanced styling (gradients, borders, shadows, etc.)
+
+**Layout:**
+- `alignment`: How to align the child within the container
+- `transform`: Apply 2D transformations (rotation, scale, translation)
+
 ```dart
 class ContainerExamples extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Container Examples')),
+      appBar: AppBar(title: Text('Container Widget Examples')),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Basic container with color
-            Container(
-              width: 200,
-              height: 100,
-              color: Colors.blue,
-              child: Center(
-                child: Text(
-                  'Basic Container',
-                  style: TextStyle(color: Colors.white),
+            // 1. Basic container with solid color
+            Text(
+              'Basic Containers:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  color: Colors.blue,
+                  child: Center(
+                    child: Text(
+                      'Basic',
+                      style: TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ),
                 ),
-              ),
+                Container(
+                  width: 80,
+                  height: 80,
+                  color: Colors.red,
+                  child: Center(
+                    child: Icon(Icons.star, color: Colors.white),
+                  ),
+                ),
+                Container(
+                  width: 80,
+                  height: 80,
+                  color: Colors.green,
+                  child: Center(
+                    child: Text(
+                      '✓',
+                      style: TextStyle(color: Colors.white, fontSize: 24),
+                    ),
+                  ),
+                ),
+              ],
             ),
             
-            SizedBox(height: 20),
+            SizedBox(height: 24),
             
-            // Container with decoration
+            // 2. Containers with different decorations
+            Text(
+              'Decorated Containers:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
+            
+            // Gradient container
             Container(
-              width: 200,
+              width: double.infinity,
               height: 100,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.purple, Colors.blue],
+                  colors: [Colors.purple, Colors.blue, Colors.cyan],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -283,43 +1250,290 @@ class ContainerExamples extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  'Decorated Container',
+                  'Gradient with Shadow',
                   style: TextStyle(
                     color: Colors.white,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ),
             
-            SizedBox(height: 20),
+            SizedBox(height: 16),
             
-            // Container with padding and margin
-            Container(
-              margin: EdgeInsets.all(10),
-              padding: EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text('Container with padding and margin'),
+            // Border styles
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Container(
+                  width: 100,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: Colors.blue, width: 2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: Text('Border', style: TextStyle(color: Colors.blue)),
+                  ),
+                ),
+                Container(
+                  width: 100,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.orange[100],
+                    border: Border(
+                      left: BorderSide(color: Colors.orange, width: 4),
+                      top: BorderSide(color: Colors.orange, width: 1),
+                      right: BorderSide(color: Colors.orange, width: 1),
+                      bottom: BorderSide(color: Colors.orange, width: 1),
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: Text('Left Border', style: TextStyle(color: Colors.orange[800])),
+                  ),
+                ),
+              ],
             ),
             
-            SizedBox(height: 20),
+            SizedBox(height: 24),
             
-            // Circular container
+            // 3. Margin and Padding demonstration
+            Text(
+              'Margin vs Padding:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
             Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.green,
-                shape: BoxShape.circle,
+              color: Colors.yellow[100], // Outer container to show margin effect
+              child: Column(
+                children: [
+                  // Container with margin
+                  Container(
+                    margin: EdgeInsets.all(20),
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[100],
+                      border: Border.all(color: Colors.blue),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Margin: 20px (yellow space around)',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 8),
+                        Container(
+                          padding: EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text('Padding: 16px (blue space inside)'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              child: Icon(
-                Icons.check,
-                color: Colors.white,
-                size: 40,
+            ),
+            
+            SizedBox(height: 24),
+            
+            // 4. Different shapes
+            Text(
+              'Container Shapes:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Circle
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.check, color: Colors.white, size: 40),
+                ),
+                // Rounded rectangle
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.orange,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Icon(Icons.star, color: Colors.white, size: 40),
+                ),
+                // Custom border radius
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.purple,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Icon(Icons.favorite, color: Colors.white, size: 40),
+                ),
+              ],
+            ),
+            
+            SizedBox(height: 24),
+            
+            // 5. Container with transformations
+            Text(
+              'Transformed Containers:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Rotated container
+                Transform.rotate(
+                  angle: 0.3, // radians
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    color: Colors.red,
+                    child: Center(
+                      child: Text('Rotate', style: TextStyle(color: Colors.white, fontSize: 10)),
+                    ),
+                  ),
+                ),
+                // Scaled container
+                Transform.scale(
+                  scale: 1.2,
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    color: Colors.blue,
+                    child: Center(
+                      child: Text('Scale', style: TextStyle(color: Colors.white, fontSize: 10)),
+                    ),
+                  ),
+                ),
+                // Skewed container
+                Transform(
+                  transform: Matrix4.skewX(0.2),
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    color: Colors.green,
+                    child: Center(
+                      child: Text('Skew', style: TextStyle(color: Colors.white, fontSize: 10)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            
+            SizedBox(height: 24),
+            
+            // 6. Container constraints demonstration
+            Text(
+              'Container Constraints:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
+            Container(
+              constraints: BoxConstraints(
+                minWidth: 100,
+                maxWidth: 200,
+                minHeight: 50,
+                maxHeight: 100,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.cyan[100],
+                border: Border.all(color: Colors.cyan),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: Text(
+                  'This container has constraints: min 100x50, max 200x100. '
+                  'It will grow to fit content but respect these limits.',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
+            ),
+            
+            SizedBox(height: 24),
+            
+            // 7. Advanced decoration effects
+            Text(
+              'Advanced Effects:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              height: 120,
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [Colors.pink[200]!, Colors.purple[400]!],
+                  center: Alignment.topLeft,
+                  radius: 1.5,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.purple.withOpacity(0.3),
+                    blurRadius: 15,
+                    spreadRadius: 5,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  // Background pattern
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        image: DecorationImage(
+                          image: NetworkImage('https://picsum.photos/seed/pattern/400/200'),
+                          fit: BoxFit.cover,
+                          opacity: 0.2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Overlay content
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Advanced Container',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Gradient + Shadow + Background Image',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -329,6 +1543,73 @@ class ContainerExamples extends StatelessWidget {
   }
 }
 ```
+
+#### Container vs Other Widgets
+
+**When to use Container:**
+- Need multiple styling features (color + padding + border)
+- Want to add margins around a widget
+- Need to transform or constrain a widget
+- Creating simple rectangular layouts
+
+**Alternatives for specific needs:**
+- `Padding`: Only need padding (more efficient)
+- `SizedBox`: Only need fixed size or spacing
+- `DecoratedBox`: Only need decoration without size constraints
+- `Transform`: Only need transformations
+
+#### Common Container Patterns
+
+```dart
+// Card-like container
+Container(
+  margin: EdgeInsets.all(16),
+  padding: EdgeInsets.all(16),
+  decoration: BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(12),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.grey.withOpacity(0.2),
+        spreadRadius: 1,
+        blurRadius: 6,
+        offset: Offset(0, 3),
+      ),
+    ],
+  ),
+  child: Column(
+    children: [
+      Text('Card Title', style: TextStyle(fontWeight: FontWeight.bold)),
+      Text('Card content goes here...'),
+    ],
+  ),
+)
+
+// Button-like container
+GestureDetector(
+  onTap: () => print('Container button pressed'),
+  child: Container(
+    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [Colors.blue, Colors.blueAccent],
+      ),
+      borderRadius: BorderRadius.circular(25),
+    ),
+    child: Text(
+      'Custom Button',
+      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+    ),
+  ),
+)
+```
+
+#### Performance Tips
+
+1. **Use specific widgets when possible**: If you only need padding, use `Padding` widget instead of `Container`
+2. **Avoid unnecessary containers**: Don't wrap widgets in containers unless you need the functionality
+3. **Cache complex decorations**: For repeated decorations, consider storing `BoxDecoration` in a variable
+4. **Be mindful of rebuilds**: Complex decorations can impact performance during animations
 
 ## Layout Widgets
 
