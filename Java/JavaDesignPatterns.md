@@ -168,6 +168,150 @@ class Computer {
 //     .build();
 ```
 
+### d) Abstract Factory Pattern
+
+**Intent**: Provides an interface for creating families of related or dependent objects without specifying their concrete classes.
+
+**When to use**: When your system needs to be independent of how its products are created, composed, and represented, and when you need to provide a library of products that reveals only their interfaces, not their implementations.
+
+**Example:**
+```java
+// Abstract Products
+interface Button {
+    void render();
+}
+
+interface Checkbox {
+    void render();
+}
+
+// Concrete Products for Windows
+class WindowsButton implements Button {
+    public void render() { System.out.println("Rendering Windows Button"); }
+}
+
+class WindowsCheckbox implements Checkbox {
+    public void render() { System.out.println("Rendering Windows Checkbox"); }
+}
+
+// Concrete Products for Mac
+class MacButton implements Button {
+    public void render() { System.out.println("Rendering Mac Button"); }
+}
+
+class MacCheckbox implements Checkbox {
+    public void render() { System.out.println("Rendering Mac Checkbox"); }
+}
+
+// Abstract Factory
+interface GUIFactory {
+    Button createButton();
+    Checkbox createCheckbox();
+}
+
+// Concrete Factories
+class WindowsFactory implements GUIFactory {
+    public Button createButton() { return new WindowsButton(); }
+    public Checkbox createCheckbox() { return new WindowsCheckbox(); }
+}
+
+class MacFactory implements GUIFactory {
+    public Button createButton() { return new MacButton(); }
+    public Checkbox createCheckbox() { return new MacCheckbox(); }
+}
+
+// Client code
+class Application {
+    private Button button;
+    private Checkbox checkbox;
+
+    public Application(GUIFactory factory) {
+        button = factory.createButton();
+        checkbox = factory.createCheckbox();
+    }
+
+    public void render() {
+        button.render();
+        checkbox.render();
+    }
+}
+
+// Usage:
+// GUIFactory factory = new WindowsFactory(); // or new MacFactory()
+// Application app = new Application(factory);
+// app.render();
+```
+
+### e) Prototype Pattern
+
+**Intent**: Creates new objects by cloning an existing object, known as the prototype.
+
+**When to use**: When the cost of creating a new object is expensive or complex, and you want to avoid the overhead of initialization.
+
+**Example:**
+```java
+// The Prototype interface
+interface Shape extends Cloneable {
+    Shape clone();
+    void draw();
+}
+
+// Concrete Prototypes
+class Circle implements Shape {
+    private int radius;
+    private String color;
+
+    public Circle(int radius, String color) {
+        this.radius = radius;
+        this.color = color;
+    }
+
+    @Override
+    public Shape clone() {
+        return new Circle(this.radius, this.color);
+    }
+
+    @Override
+    public void draw() {
+        System.out.println("Drawing a " + color + " circle with radius " + radius);
+    }
+
+    public void setRadius(int radius) { this.radius = radius; }
+    public void setColor(String color) { this.color = color; }
+}
+
+class Rectangle implements Shape {
+    private int width;
+    private int height;
+    private String color;
+
+    public Rectangle(int width, int height, String color) {
+        this.width = width;
+        this.height = height;
+        this.color = color;
+    }
+
+    @Override
+    public Shape clone() {
+        return new Rectangle(this.width, this.height, this.color);
+    }
+
+    @Override
+    public void draw() {
+        System.out.println("Drawing a " + color + " rectangle " + width + "x" + height);
+    }
+
+    public void setWidth(int width) { this.width = width; }
+    public void setHeight(int height) { this.height = height; }
+    public void setColor(String color) { this.color = color; }
+}
+
+// Usage:
+// Shape originalCircle = new Circle(10, "red");
+// Shape clonedCircle = originalCircle.clone();
+// clonedCircle.draw(); // Drawing a red circle with radius 10
+```
+
 ---
 
 ## 2. Structural Patterns
@@ -275,6 +419,81 @@ class WithSugar extends CoffeeDecorator {
 // System.out.println(myCoffee.getDescription()); // Simple coffee, with milk, with sugar
 ```
 
+### c) Facade Pattern
+
+**Intent**: Provides a unified, simplified interface to a complex subsystem, making the subsystem easier to use.
+
+**When to use**: When you want to provide a simple interface to a complex system, or when you want to layer your subsystems.
+
+**Example:**
+```java
+// Complex subsystem classes
+class DVDPlayer {
+    public void on() { System.out.println("DVD Player is ON"); }
+    public void play(String movie) { System.out.println("Playing movie: " + movie); }
+    public void off() { System.out.println("DVD Player is OFF"); }
+}
+
+class Projector {
+    public void on() { System.out.println("Projector is ON"); }
+    public void setInput(String input) { System.out.println("Projector input set to: " + input); }
+    public void off() { System.out.println("Projector is OFF"); }
+}
+
+class SoundSystem {
+    public void on() { System.out.println("Sound System is ON"); }
+    public void setVolume(int level) { System.out.println("Volume set to: " + level); }
+    public void off() { System.out.println("Sound System is OFF"); }
+}
+
+class Lights {
+    public void dim(int level) { System.out.println("Lights dimmed to: " + level + "%"); }
+    public void on() { System.out.println("Lights are ON"); }
+}
+
+// The Facade class
+class HomeTheaterFacade {
+    private DVDPlayer dvdPlayer;
+    private Projector projector;
+    private SoundSystem soundSystem;
+    private Lights lights;
+
+    public HomeTheaterFacade(DVDPlayer dvd, Projector proj, SoundSystem sound, Lights lights) {
+        this.dvdPlayer = dvd;
+        this.projector = proj;
+        this.soundSystem = sound;
+        this.lights = lights;
+    }
+
+    // Simplified methods
+    public void watchMovie(String movie) {
+        System.out.println("Get ready to watch a movie...");
+        lights.dim(10);
+        projector.on();
+        projector.setInput("DVD");
+        soundSystem.on();
+        soundSystem.setVolume(5);
+        dvdPlayer.on();
+        dvdPlayer.play(movie);
+    }
+
+    public void endMovie() {
+        System.out.println("Shutting down the theater...");
+        dvdPlayer.off();
+        soundSystem.off();
+        projector.off();
+        lights.on();
+    }
+}
+
+// Usage:
+// HomeTheaterFacade homeTheater = new HomeTheaterFacade(
+//     new DVDPlayer(), new Projector(), new SoundSystem(), new Lights()
+// );
+// homeTheater.watchMovie("Inception");
+// homeTheater.endMovie();
+```
+
 ---
 
 ## 3. Behavioral Patterns
@@ -372,4 +591,77 @@ class ShoppingCart {
 // ShoppingCart cart = new ShoppingCart();
 // cart.setPaymentStrategy(new PayPalStrategy());
 // cart.checkout(100); // Paid 100 with PayPal.
+```
+
+### c) Iterator Pattern
+
+**Intent**: Provides a way to access the elements of an aggregate object sequentially without exposing its underlying representation.
+
+**When to use**: When you need to traverse a collection without exposing its internal structure, or when you want to support multiple traversals of aggregate objects.
+
+**Example:**
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+// The Iterator interface
+interface Iterator<T> {
+    boolean hasNext();
+    T next();
+}
+
+// The Aggregate interface
+interface Container<T> {
+    Iterator<T> createIterator();
+}
+
+// Concrete implementation
+class Book {
+    private String title;
+    public Book(String title) { this.title = title; }
+    public String getTitle() { return title; }
+}
+
+class BookCollection implements Container<Book> {
+    private List<Book> books = new ArrayList<>();
+
+    public void addBook(Book book) {
+        books.add(book);
+    }
+
+    @Override
+    public Iterator<Book> createIterator() {
+        return new BookIterator();
+    }
+
+    // Concrete Iterator
+    private class BookIterator implements Iterator<Book> {
+        private int currentIndex = 0;
+
+        @Override
+        public boolean hasNext() {
+            return currentIndex < books.size();
+        }
+
+        @Override
+        public Book next() {
+            if (this.hasNext()) {
+                return books.get(currentIndex++);
+            }
+            return null;
+        }
+    }
+}
+
+// Usage:
+// BookCollection library = new BookCollection();
+// library.addBook(new Book("Design Patterns"));
+// library.addBook(new Book("Clean Code"));
+// library.addBook(new Book("Effective Java"));
+//
+// Iterator<Book> iterator = library.createIterator();
+// while (iterator.hasNext()) {
+//     Book book = iterator.next();
+//     System.out.println("Book: " + book.getTitle());
+// }
 ```
