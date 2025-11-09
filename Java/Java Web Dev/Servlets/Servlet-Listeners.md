@@ -26,6 +26,28 @@ These listeners are used to monitor events related to `HttpSession` objects.
     -   `sessionDestroyed(HttpSessionEvent se)`: Called when a session is about to be invalidated.
 -   `HttpSessionAttributeListener`: Notified when an attribute is added to, removed from, or replaced in a session.
 
+##### HttpSessionListener to Monitor Sessions
+```java
+import javax.servlet.http.*;
+import javax.servlet.annotation.WebListener;
+
+@WebListener
+public class SessionCounterListener implements HttpSessionListener {
+    private static int activeSessions = 0;
+
+    public void sessionCreated(HttpSessionEvent se) {
+        activeSessions++;
+        se.getSession().getServletContext().setAttribute("activeUsers", activeSessions);
+    }
+
+    public void sessionDestroyed(HttpSessionEvent se) {
+        activeSessions--;
+        se.getSession().getServletContext().setAttribute("activeUsers", activeSessions);
+    }
+}
+
+```
+
 ### 3. ServletRequest Listeners
 
 These listeners are used to monitor events related to `ServletRequest` objects.
