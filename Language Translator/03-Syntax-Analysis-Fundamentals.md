@@ -1,0 +1,633 @@
+# Chapter 3: Syntax Analysis - Fundamentals
+
+## 3.1 Introduction to Syntax Analysis
+
+**Syntax Analysis** (or **Parsing**) is the second phase of a compiler. It takes the stream of tokens from the lexical analyzer and determines if they form a valid sentence in the source language.
+
+### Role of the Parser
+
+```
+┌──────────────┐    ┌─────────────┐    ┌──────────────┐
+│   Lexical    │───▶│   Syntax    │───▶│   Semantic   │
+│   Analyzer   │    │   Analyzer  │    │   Analyzer   │
+│              │    │   (Parser)  │    │              │
+└──────────────┘    └─────────────┘    └──────────────┘
+     Tokens              │                   │
+                         ▼                   │
+                   ┌───────────┐             │
+                   │Parse Tree │◀────────────┘
+                   └───────────┘
+```
+
+### Parser Responsibilities
+
+1. **Verify** that tokens follow the grammatical rules
+2. **Build** a parse tree or abstract syntax tree
+3. **Report** syntax errors with meaningful messages
+4. **Recover** from errors to continue parsing
+
+---
+
+## 3.2 Context-Free Grammars (CFG)
+
+A **Context-Free Grammar** is a formal way to describe the syntax of a programming language.
+
+### Why "Context-Free"?
+
+The replacement of a non-terminal by a production is **independent of context** (surrounding symbols). The non-terminal can be replaced regardless of what appears around it.
+
+### Formal Definition
+
+A CFG is a 4-tuple: **G = (V, T, P, S)**
+
+| Component | Description | Example |
+|-----------|-------------|---------|
+| **V** (Variables) | Set of non-terminals | {E, T, F} |
+| **T** (Terminals) | Set of tokens | {id, +, *, (, )} |
+| **P** (Productions) | Set of rules | E → E + T |
+| **S** (Start Symbol) | Starting non-terminal | E |
+
+### Production Rules
+
+A production has the form: **A → α**
+
+Where:
+- A is a non-terminal (V)
+- α is a string of terminals and/or non-terminals (V ∪ T)*
+
+### Example Grammar for Arithmetic Expressions
+
+```
+E → E + T | E - T | T
+T → T * F | T / F | F
+F → ( E ) | id
+```
+
+**Interpretation:**
+- **E** (Expression) can be addition/subtraction of terms, or just a term
+- **T** (Term) can be multiplication/division of factors, or just a factor
+- **F** (Factor) can be a parenthesized expression or an identifier
+
+### Notational Conventions
+
+| Symbol | Represents |
+|--------|------------|
+| A, B, C, ... S | Non-terminals |
+| a, b, c, ... | Terminals |
+| X, Y, Z | Either terminal or non-terminal |
+| α, β, γ, ... | Strings of terminals and non-terminals |
+| w, x, y, z | Strings of terminals only |
+| ε | Empty string |
+
+---
+
+## 3.3 Derivations
+
+A **derivation** is a sequence of production rule applications that transforms the start symbol into a string of terminals.
+
+### Types of Derivations
+
+#### Leftmost Derivation (LMD)
+In each step, replace the **leftmost** non-terminal.
+
+**Example**: Derive `id + id * id` using grammar:
+```
+E → E + T | T
+T → T * F | F
+F → id
+```
+
+**Leftmost Derivation:**
+```
+E  ⟹  E + T           (E → E + T)
+   ⟹  T + T           (E → T)
+   ⟹  F + T           (T → F)
+   ⟹  id + T          (F → id)
+   ⟹  id + T * F      (T → T * F)
+   ⟹  id + F * F      (T → F)
+   ⟹  id + id * F     (F → id)
+   ⟹  id + id * id    (F → id)
+```
+
+#### Rightmost Derivation (RMD)
+In each step, replace the **rightmost** non-terminal.
+
+**Rightmost Derivation:**
+```
+E  ⟹  E + T           (E → E + T)
+   ⟹  E + T * F       (T → T * F)
+   ⟹  E + T * id      (F → id)
+   ⟹  E + F * id      (T → F)
+   ⟹  E + id * id     (F → id)
+   ⟹  T + id * id     (E → T)
+   ⟹  F + id * id     (T → F)
+   ⟹  id + id * id    (F → id)
+```
+
+### Sentential Form
+
+A **sentential form** is any string derivable from the start symbol.
+
+- If it contains non-terminals → sentential form
+- If it contains only terminals → **sentence** (valid program)
+
+---
+
+## 3.4 Parse Trees
+
+A **parse tree** is a graphical representation of a derivation that shows the hierarchical structure of the source program.
+
+### Properties of Parse Trees
+
+1. **Root**: Start symbol of the grammar
+2. **Interior nodes**: Non-terminals
+3. **Leaves**: Terminals or ε
+4. **Children of a node**: Right side of production used
+
+### Example Parse Tree
+
+For `id + id * id`:
+
+```
+              E
+            / | \
+           E  +  T
+           |    /|\
+           T   T * F
+           |   |   |
+           F   F   id
+           |   |
+          id  id
+```
+
+### Reading the Parse Tree
+
+- **In-order traversal** of leaves gives the original input
+- **Structure** shows precedence and associativity
+- Multiple derivations can produce the **same** parse tree
+
+### Abstract Syntax Tree (AST)
+
+An **AST** is a condensed form of parse tree where:
+- Operators appear as internal nodes
+- Operands are children
+- Redundant nodes are removed
+
+**Parse Tree vs AST for `id + id * id`:**
+
+```
+Parse Tree:                    AST:
+      E                          +
+    / | \                       / \
+   E  +  T                    id   *
+   |    /|\                       / \
+   T   T * F                    id  id
+   |   |   |
+   F   F  id
+   |   |
+  id  id
+```
+
+---
+
+## 3.5 Ambiguity
+
+A grammar is **ambiguous** if it produces more than one parse tree (or more than one leftmost/rightmost derivation) for some sentence.
+
+### Example of Ambiguous Grammar
+
+```
+E → E + E | E * E | id
+```
+
+For `id + id * id`, two parse trees exist:
+
+**Tree 1** (+ has higher precedence):
+```
+        E
+      / | \
+     E  *  E
+     |     |
+   / | \  id
+  E  +  E
+  |     |
+ id    id
+```
+
+**Tree 2** (* has higher precedence):
+```
+        E
+      / | \
+     E  +  E
+     |    /|\
+    id   E * E
+         |   |
+        id  id
+```
+
+### Why Ambiguity is Problematic
+
+- Different parse trees → different meanings
+- Compiler must choose one interpretation
+- Can lead to incorrect code generation
+
+### Eliminating Ambiguity
+
+#### Method 1: Rewriting the Grammar
+
+**Ambiguous:**
+```
+E → E + E | E * E | id
+```
+
+**Unambiguous (with precedence):**
+```
+E → E + T | T
+T → T * F | F
+F → id
+```
+
+This enforces:
+- `*` has higher precedence than `+`
+- Both are left-associative
+
+#### Method 2: Precedence and Associativity Rules
+
+Instead of rewriting, some parsers use explicit rules:
+
+```
+Precedence (low to high): +, -, *, /
+Associativity: All left-to-right
+```
+
+### Dangling Else Problem
+
+A classic ambiguity in programming languages:
+
+```
+stmt → if expr then stmt
+     | if expr then stmt else stmt
+     | other
+```
+
+For: `if E1 then if E2 then S1 else S2`
+
+**Interpretation 1**: else matches inner if
+```
+if E1 then (if E2 then S1 else S2)
+```
+
+**Interpretation 2**: else matches outer if
+```
+if E1 then (if E2 then S1) else S2
+```
+
+**Solution**: Match else with nearest unmatched if
+
+```
+stmt → matched | unmatched
+
+matched → if expr then matched else matched
+        | other
+
+unmatched → if expr then stmt
+          | if expr then matched else unmatched
+```
+
+---
+
+## 3.6 Left Recursion
+
+A grammar is **left-recursive** if it has a non-terminal A such that:
+```
+A ⟹* Aα  (for some string α)
+```
+
+### Types of Left Recursion
+
+#### Immediate Left Recursion
+```
+A → Aα | β
+```
+
+The non-terminal directly calls itself on the left.
+
+#### Indirect Left Recursion
+```
+A → Bα
+B → Aβ
+```
+
+The recursion happens through other non-terminals.
+
+### Why Remove Left Recursion?
+
+**Top-down parsers** (like Recursive Descent, LL parsers) cannot handle left recursion because:
+- Parser would call A, which calls A, which calls A... (infinite loop)
+- Never consumes any input
+
+### Eliminating Immediate Left Recursion
+
+**Original:**
+```
+A → Aα₁ | Aα₂ | ... | Aαₘ | β₁ | β₂ | ... | βₙ
+```
+
+**Transformed:**
+```
+A  → β₁A' | β₂A' | ... | βₙA'
+A' → α₁A' | α₂A' | ... | αₘA' | ε
+```
+
+### Example
+
+**Left-recursive grammar:**
+```
+E → E + T | T
+T → T * F | F
+F → id | (E)
+```
+
+**After eliminating left recursion:**
+```
+E  → T E'
+E' → + T E' | ε
+
+T  → F T'
+T' → * F T' | ε
+
+F  → id | (E)
+```
+
+### Eliminating Indirect Left Recursion
+
+**Algorithm:**
+1. Order the non-terminals: A₁, A₂, ..., Aₙ
+2. For i = 1 to n:
+   - For j = 1 to i-1:
+     - Replace Aᵢ → Aⱼγ with Aᵢ → δ₁γ | δ₂γ | ... (where Aⱼ → δ₁ | δ₂ | ...)
+   - Eliminate immediate left recursion in Aᵢ
+
+---
+
+## 3.7 Left Factoring
+
+**Left factoring** is used when two productions have a common prefix, making it difficult to choose between them.
+
+### The Problem
+
+```
+A → αβ₁ | αβ₂
+```
+
+Parser sees α and doesn't know which production to use until it reads more input.
+
+### Left Factoring Transformation
+
+**Original:**
+```
+A → αβ₁ | αβ₂
+```
+
+**Left-factored:**
+```
+A  → αA'
+A' → β₁ | β₂
+```
+
+### Example
+
+**Original grammar:**
+```
+stmt → if expr then stmt else stmt
+     | if expr then stmt
+```
+
+**Left-factored:**
+```
+stmt     → if expr then stmt stmt'
+stmt'    → else stmt | ε
+```
+
+### Complete Left Factoring Algorithm
+
+```
+Input: Grammar G
+Output: Left-factored grammar
+
+for each non-terminal A:
+    Find the longest common prefix α of two or more alternatives
+    if α ≠ ε:
+        Replace A → αβ₁ | αβ₂ | ... | αβₙ | γ
+        with:
+            A  → αA' | γ
+            A' → β₁ | β₂ | ... | βₙ
+    Repeat until no common prefixes exist
+```
+
+---
+
+## 3.8 Types of Parsers
+
+Parsers are broadly classified into two categories:
+
+```
+                    Parsers
+                       │
+         ┌─────────────┴─────────────┐
+         │                           │
+    Top-Down                    Bottom-Up
+    (Start → Input)             (Input → Start)
+         │                           │
+    ┌────┴────┐                 ┌────┴────┐
+    │         │                 │         │
+Recursive  Predictive      Shift-Reduce  LR Parsers
+ Descent    (LL(1))        Operators    (SLR,CLR,LALR)
+```
+
+### Top-Down Parsing
+
+**Approach**: Start from the start symbol and try to derive the input string.
+
+**Intuition**: Begin at the root of the parse tree and grow toward leaves.
+
+**Methods**:
+- Recursive Descent Parsing
+- Predictive Parsing (LL parsers)
+
+**Limitations**:
+- Cannot handle left-recursive grammars
+- May require backtracking
+- LL(k) grammars only
+
+### Bottom-Up Parsing
+
+**Approach**: Start from the input string and try to reduce it to the start symbol.
+
+**Intuition**: Begin at the leaves and grow toward the root.
+
+**Methods**:
+- Shift-Reduce Parsing
+- Operator Precedence Parsing
+- LR Parsing (SLR, CLR, LALR)
+
+**Advantages**:
+- Can handle larger class of grammars
+- More powerful than top-down
+- No backtracking needed
+
+---
+
+## 3.9 Language Classes and Grammar Hierarchy
+
+### Chomsky Hierarchy
+
+```
+┌──────────────────────────────────────────┐
+│          Type 0: Unrestricted            │
+│  ┌────────────────────────────────────┐  │
+│  │    Type 1: Context-Sensitive       │  │
+│  │  ┌──────────────────────────────┐  │  │
+│  │  │   Type 2: Context-Free       │  │  │
+│  │  │  ┌────────────────────────┐  │  │  │
+│  │  │  │   Type 3: Regular      │  │  │  │
+│  │  │  └────────────────────────┘  │  │  │
+│  │  └──────────────────────────────┘  │  │
+│  └────────────────────────────────────┘  │
+└──────────────────────────────────────────┘
+```
+
+| Type | Name | Production Form | Recognizer |
+|------|------|-----------------|------------|
+| 3 | Regular | A → aB or A → a | Finite Automata |
+| 2 | Context-Free | A → α | Pushdown Automata |
+| 1 | Context-Sensitive | αAβ → αγβ | Linear Bounded Automata |
+| 0 | Unrestricted | α → β | Turing Machine |
+
+### Parser Grammar Classes
+
+```
+        Regular ⊂ LL(1) ⊂ LL(k) ⊂ LR(k) ⊂ Context-Free
+        
+        LL(1) ⊂ SLR(1) ⊂ LALR(1) ⊂ LR(1)
+```
+
+---
+
+## 3.10 Grammar Transformations Summary
+
+Before using a grammar with a parser, you may need to:
+
+### Step 1: Remove Ambiguity
+- Rewrite grammar to enforce precedence and associativity
+- Or use explicit precedence rules
+
+### Step 2: Eliminate Left Recursion
+- Required for top-down parsers
+- Transform A → Aα | β to A → βA', A' → αA' | ε
+
+### Step 3: Left Factor
+- Required when alternatives share common prefixes
+- Transform A → αβ₁ | αβ₂ to A → αA', A' → β₁ | β₂
+
+### Complete Transformation Example
+
+**Original (ambiguous, left-recursive):**
+```
+E → E + E | E * E | (E) | id
+```
+
+**Step 1 - Remove ambiguity:**
+```
+E → E + T | T
+T → T * F | F
+F → (E) | id
+```
+
+**Step 2 - Remove left recursion:**
+```
+E  → T E'
+E' → + T E' | ε
+T  → F T'
+T' → * F T' | ε
+F  → (E) | id
+```
+
+**Now ready for LL(1) parsing!**
+
+---
+
+## 3.11 Relationship Between Grammars and Languages
+
+### Important Concepts
+
+1. **A grammar defines a language**: L(G) = set of all strings derivable from S
+
+2. **Multiple grammars for same language**: Different grammars can generate the same language
+
+3. **Equivalent grammars**: G₁ and G₂ are equivalent if L(G₁) = L(G₂)
+
+4. **Unambiguous grammar**: Only if every string has exactly one parse tree
+
+### Language Properties
+
+| Property | Description |
+|----------|-------------|
+| **Inherently Ambiguous** | Every grammar for the language is ambiguous |
+| **Decidable** | Can determine if string belongs to language |
+| **Closure Properties** | CFLs closed under union, concatenation, Kleene star |
+
+---
+
+## 3.12 Summary
+
+### Key Concepts:
+
+1. **Context-Free Grammars** formally describe programming language syntax
+
+2. **Derivations** show step-by-step production of strings
+   - Leftmost: Replace leftmost non-terminal first
+   - Rightmost: Replace rightmost non-terminal first
+
+3. **Parse Trees** visualize the hierarchical structure of derivations
+
+4. **Ambiguity** occurs when multiple parse trees exist for one string
+   - Must be eliminated for correct compilation
+
+5. **Grammar Transformations**:
+   - Remove ambiguity
+   - Eliminate left recursion (for top-down parsing)
+   - Left factoring (for predictive parsing)
+
+6. **Parser Types**:
+   - Top-Down: Parse from start symbol to input
+   - Bottom-Up: Parse from input to start symbol
+
+---
+
+## 🔍 Practice Questions
+
+1. Write a CFG for:
+   - Balanced parentheses
+   - Strings with equal a's and b's
+   - Valid C variable declarations
+
+2. Show leftmost and rightmost derivations for `a + b * c` using appropriate grammar.
+
+3. Prove that the grammar `E → E+E | E*E | id` is ambiguous.
+
+4. Eliminate left recursion from:
+   ```
+   A → ABd | Aa | a
+   B → Be | b
+   ```
+
+5. Left factor the grammar:
+   ```
+   S → iEtS | iEtSeS | a
+   E → b
+   ```
+
+---
+
+*Next Chapter: [Top-Down Parsing](04-Top-Down-Parsing.md)*
