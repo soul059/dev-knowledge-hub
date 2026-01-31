@@ -4,6 +4,10 @@
 
 **Semantic Analysis** is the phase that checks whether the syntactically correct program has meaningful semantics according to the language rules.
 
+Problem: Parsing only checks structure. It cannot detect incorrect meaning like type mismatches or undeclared variables.
+
+Solution: Semantic analysis adds meaning checks using the parse tree and the symbol table. It verifies types, declarations, and correct usage before code generation.
+
 ### What Syntax Analysis Cannot Catch
 
 The parser only checks structure, not meaning:
@@ -45,6 +49,10 @@ return x + func(x, x);    // func expects 1 argument, not 2
 ## 6.2 Syntax-Directed Definitions (SDD)
 
 A **Syntax-Directed Definition** associates semantic rules with grammar productions to compute attribute values.
+
+Problem: We need a systematic way to attach semantic meaning to syntax so the compiler can compute values and types.
+
+Solution: SDD attaches attributes and rules to grammar productions so semantic values are computed alongside parsing.
 
 ### Components
 
@@ -101,6 +109,10 @@ E.val = E₁.val + T.val
 ```
 The value of E is computed from values of its children E₁ and T.
 
+Problem: Many semantic values are determined by the parts of an expression, but we need a clear direction of computation.
+
+Solution: Synthesized attributes flow bottom-up from children to parent.
+
 ### Inherited Attributes
 
 **Definition**: An attribute of a node is **inherited** if its value is computed from attributes of its **parent** or **siblings**.
@@ -116,6 +128,10 @@ For: D → T L
 Semantic rules:
      L.type = T.type    (L inherits type from T through D)
      L₁.type = L.type   (inherited down the L chain)
+
+Problem: Some attributes depend on context (parent or siblings), not just children.
+
+Solution: Inherited attributes allow passing information top-down or left-to-right across siblings.
 ```
 
 ### S-Attributed vs L-Attributed Definitions
@@ -134,6 +150,10 @@ Semantic rules:
 ## 6.4 Syntax-Directed Translation Schemes (SDT)
 
 An **SDT** embeds semantic actions within production rules, specifying when actions execute.
+
+Problem: Even with SDD, we still need to know when to run actions during parsing.
+
+Solution: SDT places actions inside productions so the order of execution is explicit.
 
 ### Notation
 
@@ -229,6 +249,10 @@ void L(Type inh_type) {  // inh_type is inherited
 
 A **type** is a set of values together with operations that can be performed on them.
 
+Problem: Without a formal type system, the compiler cannot decide which operations are valid.
+
+Solution: A type system defines legal values and operations, enabling consistent type checking.
+
 ### Common Type Categories
 
 | Category | Examples |
@@ -273,6 +297,10 @@ int func(int, int); // integer × integer → integer
 | Languages | C, Java, C++ | Python, JavaScript |
 | Errors | Caught early | May cause runtime crashes |
 | Overhead | None at runtime | Runtime checks needed |
+
+Problem: Programs can perform invalid operations like adding a number to a string.
+
+Solution: Type checking enforces rules and either rejects invalid programs (static) or checks at runtime (dynamic).
 
 ### Type Checking Rules
 
@@ -340,6 +368,10 @@ Type typecheck_binary(char op, Type t1, Type t2) {
 
 The compiler automatically converts types when safe:
 
+Problem: Mixed-type expressions are common, but operands must have compatible types.
+
+Solution: Coercion inserts safe conversions (usually widening) so expressions can be evaluated correctly.
+
 ```
 Widening conversions (safe):
 char → int → long → float → double
@@ -392,6 +424,10 @@ if type(E₁) = real and type(E₂) = real:
 
 The **Symbol Table** is a data structure that stores information about identifiers (variables, functions, types) used in the program.
 
+Problem: The compiler must track identifiers across scopes with their types and locations.
+
+Solution: The symbol table stores identifier metadata and provides lookup/insert operations during semantic analysis.
+
 ### Information Stored
 
 | Attribute | Description |
@@ -436,6 +472,10 @@ The **Symbol Table** is a data structure that stores information about identifie
 2. **Local Scope**: Visible within function/block
 3. **Block Scope**: Visible within { }
 4. **File Scope**: Visible within source file
+
+Problem: Identifiers can be reused in different blocks, so the compiler must know which declaration is in effect.
+
+Solution: Scope management ensures lookup always finds the nearest valid declaration and prevents duplicates in the same scope.
 
 ### Scope Example
 
@@ -569,6 +609,10 @@ void process_declaration(Type type, char *id) {
     // Insert into symbol table
     insert(id, type, offset);
 }
+
+Problem: Declarations introduce names and types, and duplicates in the same scope are errors.
+
+Solution: Check for duplicates in current scope, allocate storage, and insert into the symbol table.
 ```
 
 ### Processing Function Declarations
@@ -623,6 +667,10 @@ void check_assignment(char *id, Expr expr) {
         insert_coercion(expr, sym->type);
     }
 }
+
+Problem: Assignment must use a declared variable and compatible types.
+
+Solution: Look up the variable, check type compatibility, and insert coercions if needed.
 ```
 
 ### If Statement
@@ -718,6 +766,10 @@ Type check_array_access(char *name, Expr index) {
 ### Structural Equivalence
 
 Two types are equivalent if they have the **same structure**.
+
+Problem: The compiler must decide when two types are considered the same.
+
+Solution: Use structural equivalence (same shape) or name equivalence (same declared name) based on language rules.
 
 ```
 typedef int Age;
@@ -844,6 +896,8 @@ F → num
 5. **Type Equivalence**:
    - Structural: Same structure
    - Name: Same type name
+
+Simple takeaway: Semantic analysis makes sure programs are not only well-formed, but also meaningful and type-correct before code generation.
 
 ---
 

@@ -4,6 +4,10 @@
 
 The **Runtime Environment** is the structure of the target computer's memory and registers that serves to manage memory and maintain the information needed to execute a program.
 
+Problem: Programs need memory, calls, and variable access rules during execution.
+
+Solution: The runtime environment defines how memory is organized and how the compiler manages function calls and data access.
+
 ### What Happens at Runtime?
 
 When a compiled program runs, it needs:
@@ -25,6 +29,10 @@ The compiler generates code that:
 ## 10.2 Memory Layout of a Program
 
 A typical program's memory is divided into several regions:
+
+Problem: Code, global data, stack, and heap have different lifetimes and access patterns.
+
+Solution: Separate memory regions provide predictable allocation and access for each kind of data.
 
 ```
 ┌─────────────────────────────────────┐ High Address
@@ -65,6 +73,10 @@ A typical program's memory is divided into several regions:
 
 Memory is allocated at **compile time** and remains fixed throughout execution.
 
+Problem: Some data sizes are known at compile time and never change.
+
+Solution: Allocate them statically to avoid runtime overhead.
+
 **Characteristics:**
 - Size must be known at compile time
 - Same location for entire program run
@@ -97,6 +109,10 @@ Static Data Segment:
 
 Memory is allocated on a **stack** that grows and shrinks with function calls.
 
+Problem: Local variables and call frames need fast allocation and deallocation.
+
+Solution: Use a stack with LIFO behavior to push/pop activation records efficiently.
+
 **Characteristics:**
 - LIFO (Last In, First Out) order
 - Automatic allocation/deallocation
@@ -113,6 +129,10 @@ Memory is allocated on a **stack** that grows and shrinks with function calls.
 ### 10.3.3 Heap Allocation
 
 Memory is allocated and freed **dynamically** at runtime.
+
+Problem: Dynamic data structures need memory not known at compile time.
+
+Solution: Use heap allocation with explicit allocation and deallocation (or garbage collection).
 
 **Characteristics:**
 - Allocated/freed in any order
@@ -136,6 +156,10 @@ free(arr);                           // Heap deallocation
 ## 10.4 Activation Records (Stack Frames)
 
 An **Activation Record** (or **Stack Frame**) is a block of memory allocated on the stack for each function invocation.
+
+Problem: Each function call needs space for locals, parameters, and return information.
+
+Solution: Activation records store all call-specific data and enable recursion.
 
 ### Contents of Activation Record
 
@@ -206,6 +230,10 @@ With FP:
 1. Evaluate and push/store arguments
 2. Save any caller-saved registers
 3. Execute CALL instruction (pushes return address)
+
+Problem: Calls must save state and pass arguments reliably across functions.
+
+Solution: Split responsibilities between caller and callee using a standard call/return sequence.
 
 **Callee's Responsibility:**
 1. Save old frame pointer
@@ -290,6 +318,10 @@ Unwinding (factorial(1) returns 1):
 ### 10.6.1 Call by Value
 
 **The most common method.**
+
+Problem: The caller and callee must agree on how arguments are passed.
+
+Solution: Define clear passing strategies such as value, reference, or value-result.
 
 - Actual parameter is **evaluated**
 - Its **value is copied** to formal parameter
@@ -409,6 +441,10 @@ example(a[i++]);   // i++ happens each time x is used
 
 How do nested functions access variables from enclosing scopes?
 
+Problem: Nested functions need access to variables defined in outer scopes.
+
+Solution: Use static links or displays to reach the correct activation record.
+
 ```pascal
 program Example;
 var x: integer;  // Global
@@ -506,6 +542,10 @@ Languages like C don't allow nested functions. All functions are at the same nes
 - C++: `new`
 - Java: `new` (garbage collected)
 
+Problem: The heap must serve allocation requests of varying sizes efficiently.
+
+Solution: Use free lists and allocation strategies (first fit, best fit, etc.).
+
 **Deallocation Functions:**
 - C: `free()`
 - C++: `delete`
@@ -587,6 +627,8 @@ Manual memory management is error-prone:
 - **Memory leaks**: Forgetting to free
 - **Dangling pointers**: Using freed memory
 - **Double free**: Freeing twice
+
+Solution: Garbage collection automatically finds and frees unreachable objects.
 
 ### What is Garbage?
 
@@ -804,6 +846,8 @@ int main() {
    - Mark and sweep
    - Copying collection
    - Generational collection
+
+Simple takeaway: The runtime environment defines how memory, calls, and data access work during program execution.
 
 ---
 

@@ -4,6 +4,10 @@
 
 **Top-Down Parsing** constructs the parse tree from the **root** (start symbol) to the **leaves** (terminals), attempting to find a leftmost derivation for the input string.
 
+Problem: We need a method to decide which productions to apply while reading input.
+
+Solution: Top-down parsing starts from the start symbol and expands productions to match the input.
+
 ### The Intuition
 
 Imagine you're trying to determine if a sentence is grammatically correct:
@@ -34,6 +38,10 @@ Imagine you're trying to determine if a sentence is grammatically correct:
 ## 4.2 Recursive Descent Parsing
 
 **Recursive Descent Parsing** is a top-down method where each non-terminal in the grammar has a corresponding procedure (function) that recognizes that non-terminal.
+
+Problem: We need a simple, direct implementation of a top-down parser.
+
+Solution: Map each non-terminal to a function that consumes input according to grammar rules.
 
 ### The Basic Idea
 
@@ -111,6 +119,10 @@ For input `"cad"`:
 5. **Accepted!**
 
 **Issue**: Backtracking is **inefficient** and can be exponential in worst case.
+
+Problem: Backtracking wastes time by re-reading the same input.
+
+Solution: Predictive parsing removes backtracking by using lookahead and FIRST/FOLLOW sets.
 
 ---
 

@@ -7,6 +7,10 @@
 - Easier to translate to target machine code
 - Machine independent (portable)
 
+Problem: Directly translating each source language to each target machine would require many different compilers.
+
+Solution: Use a machine-independent IR so one front-end can serve many back-ends, and optimizations can be shared.
+
 ### Position in Compiler Pipeline
 
 ```
@@ -45,6 +49,10 @@ n × m compilers needed         ▼
 
 A condensed parse tree with only essential structure.
 
+Problem: Parse trees are too detailed and contain grammar-only nodes.
+
+Solution: AST removes redundant structure and keeps only semantic structure.
+
 **Example:** For `a = b + c * d`
 
 ```
@@ -67,6 +75,10 @@ A condensed parse tree with only essential structure.
 
 Like AST, but shares common subexpressions.
 
+Problem: Repeated subexpressions waste computation and space.
+
+Solution: DAG merges identical subexpressions to enable reuse and optimization.
+
 **Example:** For `a = b + c * d` and `e = c * d`
 
 ```
@@ -87,6 +99,10 @@ Like AST, but shares common subexpressions.
 ### 7.2.3 Three-Address Code (TAC)
 
 A sequence of instructions, each with at most three operands.
+
+Problem: We need a simple, uniform instruction form for analysis and optimization.
+
+Solution: TAC expresses computations in small steps with explicit temporaries.
 
 **General form:**
 ```
@@ -128,6 +144,10 @@ a = t2
 | | call p, n | call func, 3 |
 | | return x | return t1 |
 
+Problem: High-level constructs (arrays, pointers, calls) must be expressed in a low-level form.
+
+Solution: TAC provides a small set of primitive instruction patterns for all cases.
+
 ### Temporaries
 
 TAC uses **temporary variables** (t1, t2, ...) to hold intermediate results.
@@ -141,6 +161,10 @@ TAC uses **temporary variables** (t1, t2, ...) to hold intermediate results.
 ### 7.4.1 Quadruples
 
 A quadruple has four fields: **(op, arg1, arg2, result)**
+
+Problem: We need a data structure to store TAC for analysis and optimization.
+
+Solution: Quadruples store each instruction explicitly with a result field for easy reordering.
 
 **Example:** `a = b + c * d`
 
@@ -158,6 +182,10 @@ A quadruple has four fields: **(op, arg1, arg2, result)**
 ### 7.4.2 Triples
 
 A triple has three fields: **(op, arg1, arg2)**, result is the instruction number.
+
+Problem: Quadruples can be space-heavy.
+
+Solution: Triples remove explicit result names to save space, using instruction numbers instead.
 
 **Example:** `a = b + c * d`
 
@@ -177,6 +205,10 @@ A triple has three fields: **(op, arg1, arg2)**, result is the instruction numbe
 ### 7.4.3 Indirect Triples
 
 Uses a separate list of pointers to triples.
+
+Problem: Triples are compact but difficult to reorder.
+
+Solution: Indirect triples add a pointer list so you can reorder without breaking references.
 
 **Example:** `a = b + c * d`
 
@@ -213,6 +245,10 @@ Uses a separate list of pointers to triples.
 ### Simple Expressions
 
 **Grammar with Semantic Actions:**
+
+Problem: We need to generate TAC while parsing expressions.
+
+Solution: Use semantic actions that create temporaries and emit TAC as the parse proceeds.
 
 ```
 E → E₁ + T     { E.place = newtemp();
@@ -285,6 +321,10 @@ Boolean expressions are used for:
 1. Computing logical values
 2. Controlling program flow (if, while)
 
+Problem: Boolean expressions often control control-flow, not just produce values.
+
+Solution: Translate them into conditional jumps and use short-circuit evaluation when possible.
+
 ### Numerical Representation
 
 Treat boolean as integer: **0 = false, 1 = true**
@@ -330,6 +370,10 @@ L_false: ...
 **Problem**: When generating jumps, we don't always know the target yet.
 
 **Solution**: Leave target blank, fill in later (backpatch).
+
+Problem: Forward jumps require targets that are not yet known.
+
+Solution: Record incomplete jumps in lists and patch them once targets are established.
 
 **Attributes:**
 - `E.truelist`: List of jumps to patch with true destination
@@ -385,6 +429,10 @@ S → if E then S₁
 Code structure:
     [E code - jumps to S₁ if true, to after if false]
     [S₁ code]
+
+Problem: Control structures need correct jump targets and fall-through behavior.
+
+Solution: Use labels, backpatching, and structured templates for if/else/while/for.
 ```
 
 **Translation:**
@@ -541,6 +589,10 @@ L2: [S₂ code]
 
 For array `A[i]` with base address `base` and element size `w`:
 
+Problem: Arrays require address calculations based on indices and element size.
+
+Solution: Compute address with base + index * element_size, adjusted for lower bounds if needed.
+
 **Address Calculation:**
 ```
 address(A[i]) = base + i * w
@@ -646,6 +698,10 @@ func:
 
 In **SSA form**, each variable is assigned exactly once, and every use refers to exactly one definition.
 
+Problem: Data flow analysis is harder when variables are assigned multiple times.
+
+Solution: SSA gives each assignment a unique name, simplifying analysis and optimization.
+
 **Original Code:**
 ```
 x = 1
@@ -720,6 +776,8 @@ The φ-function selects x₁ if coming from then-branch, x₂ if from else-branc
 7. **Array Access** requires address calculation based on layout
 
 8. **SSA Form** assigns each variable exactly once
+
+Simple takeaway: Intermediate code is a clean, uniform form that makes optimization and code generation practical and reusable.
 
 ---
 

@@ -4,6 +4,10 @@
 
 **Lexical Analysis** is the **first phase** of a compiler. It reads the source program as a stream of characters and groups them into meaningful sequences called **tokens**.
 
+Problem: Parsing characters directly is hard and inefficient.
+
+Solution: The lexer groups characters into tokens so the parser works on higher-level units.
+
 ### The Role of Lexical Analyzer (Scanner)
 
 ```
@@ -27,11 +31,19 @@
 3. **Portability**: Character-set dependencies are isolated
 4. **Modularity**: Easier to maintain and modify
 
+Problem: Mixing scanning and parsing complicates both.
+
+Solution: Separate lexical analysis for clean design and better performance.
+
 ---
 
 ## 2.2 Tokens, Patterns, and Lexemes
 
 These three concepts are fundamental to understanding lexical analysis:
+
+Problem: The compiler must connect raw text to language symbols.
+
+Solution: Tokens classify text, lexemes are the actual strings, and patterns define valid lexemes.
 
 ### Token
 A **token** is a pair consisting of:
@@ -105,6 +117,10 @@ The token-attribute pair is passed to the parser:
 ## 2.4 Input Buffering
 
 Reading source code character-by-character from disk is **slow**. Compilers use buffering techniques for efficiency.
+
+Problem: Direct file I/O for each character is too slow.
+
+Solution: Use buffers with sentinel characters to reduce checks and speed scanning.
 
 ### Buffer Pairs Scheme
 

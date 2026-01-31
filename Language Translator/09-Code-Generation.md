@@ -4,6 +4,10 @@
 
 **Code Generation** is the final phase of compilation that transforms the optimized intermediate representation into target machine code.
 
+Problem: The compiler must turn machine-independent IR into efficient machine-specific instructions.
+
+Solution: Code generation maps IR to target code while respecting registers, memory, and instruction sets.
+
 ### Position in Compiler
 
 ```
@@ -21,6 +25,10 @@
 2. **Efficiency**: Generated code should be fast
 3. **Resource Utilization**: Effective use of registers and memory
 4. **Code Size**: Reasonably compact code
+
+Problem: There are many valid machine codes for the same IR, but quality varies.
+
+Solution: Apply instruction selection, register allocation, and good evaluation order to produce efficient code.
 
 ---
 
@@ -50,6 +58,10 @@ Variables and data need memory locations:
 
 Choosing the right instructions affects efficiency:
 
+Problem: Different instructions have different costs and capabilities.
+
+Solution: Choose the most efficient instructions available on the target machine.
+
 ```
 For: a = b + c
 
@@ -70,9 +82,17 @@ Decisions about which values to keep in registers:
 - **More registers used** → Faster code
 - **Limited registers** → Need to spill to memory
 
+Problem: Registers are limited, but accessing memory is expensive.
+
+Solution: Keep frequently used values in registers and spill others carefully.
+
 ### 9.2.6 Evaluation Order
 
 The order of evaluating subexpressions affects register usage:
+
+Problem: A poor evaluation order can cause extra loads and spills.
+
+Solution: Choose an order that minimizes register pressure.
 
 ```
 For: (a + b) * (c + d)
@@ -92,6 +112,10 @@ Both use same registers, but other expressions might differ.
 ### Simplified Machine Model
 
 For educational purposes, we use a simple machine:
+
+Problem: Code generation depends on the target architecture.
+
+Solution: Use a simplified model to explain key ideas like registers and addressing modes.
 
 **Registers**: R0, R1, R2, ... (general purpose)
 
@@ -131,6 +155,10 @@ For educational purposes, we use a simple machine:
 
 For each three-address instruction, generate target code using a template.
 
+Problem: We need a consistent way to map IR instructions to machine instructions.
+
+Solution: Use templates and descriptors to track where values are stored.
+
 ### Register and Address Descriptors
 
 **Register Descriptor**: For each register, what variables are currently in it.
@@ -142,6 +170,10 @@ R3: empty
 ```
 
 **Address Descriptor**: For each variable, where its value can be found.
+
+Problem: The generator must know where every value currently resides.
+
+Solution: Descriptors track locations in registers and memory to avoid unnecessary loads/stores.
 
 ```
 a: {R1, memory}  // a is in R1 and also in memory
@@ -234,6 +266,10 @@ STORE R1, d
 - Memory operations are expensive
 - Goal: Keep frequently used values in registers
 
+Problem: Many variables compete for few registers.
+
+Solution: Use heuristics locally and graph coloring globally to assign registers.
+
 ### Local Register Allocation
 
 Within a single basic block:
@@ -303,6 +339,10 @@ L1: ; then-part code
     JUMP  L3
 L2: ; else-part code
 L3: ; continue
+
+Problem: Control flow requires correct branching and label management.
+
+Solution: Translate control structures into conditional and unconditional jumps.
 ```
 
 **Optimization** - Combine comparison and jump:
@@ -373,6 +413,10 @@ A **calling convention** defines:
 - Who saves registers (caller or callee)
 - How return values are passed
 - Stack frame layout
+
+Problem: Callers and callees must agree on how to pass arguments and return values.
+
+Solution: Use a calling convention with a standard stack frame and register rules.
 
 ### Typical Stack Frame
 
@@ -501,6 +545,10 @@ main:
 
 **For `a[i]` where a starts at base address and elements have size w:**
 
+Problem: Arrays require address arithmetic before access.
+
+Solution: Compute addresses using base + index * element_size (with shifts when possible).
+
 ```
 address = base + i * w
 ```
@@ -548,6 +596,10 @@ address = base + (i * m + j) * w
 ### Arithmetic Expression Trees
 
 **Method**: Generate code by post-order traversal of expression tree.
+
+Problem: Expressions must be evaluated with limited registers.
+
+Solution: Use post-order traversal and algorithms like Sethi-Ullman to reduce register needs.
 
 **For expression `(a + b) * (c - d)`:**
 
@@ -606,6 +658,10 @@ Labels computed bottom-up. Root needs 2 registers.
 - Represent target instructions as tree patterns
 - Match patterns against IR trees
 - Cover the IR tree with instruction patterns
+
+Problem: Multiple instruction sequences can implement the same IR tree.
+
+Solution: Use pattern matching and dynamic programming to select minimal-cost instruction sets.
 
 ### Example Instruction Patterns
 
@@ -673,6 +729,10 @@ Covering 2:                 Cost = 3
 - **Speed vs Power**: Faster code may use more power
 - **Compile Time vs Code Quality**: More optimization takes longer
 
+Problem: Improving one metric can hurt another.
+
+Solution: Balance speed, size, and power based on compiler goals.
+
 ### Simple Improvements
 
 1. **Use efficient addressing modes**
@@ -692,6 +752,10 @@ Covering 2:                 Cost = 3
 - Load/Store architecture
 - Many registers
 - Simple addressing modes
+
+Problem: RISC and CISC provide different instruction capabilities.
+
+Solution: Tailor instruction selection and addressing modes to the target architecture.
 
 **Code Generation Considerations:**
 - Heavy use of registers
@@ -761,6 +825,8 @@ MOV  [x], EAX
    - Pattern matching
    - Tree rewriting
    - Dynamic programming
+
+Simple takeaway: Code generation turns IR into efficient machine code by choosing good instructions, registers, and evaluation orders.
 
 ---
 

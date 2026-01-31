@@ -4,7 +4,7 @@
 
 ---
 
-## 🚀 Unit 1: Introduction to Compilers
+## Unit 1: Introduction to Compilers
 
 ### Key Definitions
 - **Compiler**: Translates entire source code to target code before execution
@@ -31,7 +31,7 @@ Source → [Lexical] → [Syntax] → [Semantic] → [IR Gen] → [Optimize] →
 
 ---
 
-## 🔤 Unit 2: Lexical Analysis
+## Unit 2: Lexical Analysis
 
 ### Token-Lexeme-Pattern
 - **Token**: Category (IDENTIFIER, NUMBER)
@@ -61,7 +61,7 @@ Source → [Lexical] → [Syntax] → [Semantic] → [IR Gen] → [Optimize] →
 
 ---
 
-## 🌳 Unit 3: Syntax Analysis Fundamentals
+## Unit 3: Syntax Analysis Fundamentals
 
 ### Context-Free Grammar
 G = (V, T, P, S) where V=non-terminals, T=terminals, P=productions, S=start
@@ -80,7 +80,7 @@ G = (V, T, P, S) where V=non-terminals, T=terminals, P=productions, S=start
 
 ---
 
-## ⬇️ Unit 4: Top-Down Parsing
+## Unit 4: Top-Down Parsing
 
 ### FIRST Set Rules
 1. If X is terminal: FIRST(X) = {X}
@@ -102,7 +102,7 @@ Grammar is LL(1) if each table cell has at most one entry.
 
 ---
 
-## ⬆️ Unit 5: Bottom-Up Parsing
+## Unit 5: Bottom-Up Parsing
 
 ### Key Concepts
 - **Shift**: Push input symbol onto stack
@@ -126,7 +126,7 @@ Grammar is LL(1) if each table cell has at most one entry.
 
 ---
 
-## ✓ Unit 6: Semantic Analysis
+## Unit 6: Semantic Analysis
 
 ### Attribute Types
 | Type | Computed From | Flow |
@@ -148,7 +148,7 @@ int op float → float (coerce int)
 
 ---
 
-## 📝 Unit 7: Intermediate Code
+## Unit 7: Intermediate Code
 
 ### Three-Address Code Forms
 | | Quadruple | Triple | Indirect Triple |
@@ -175,7 +175,7 @@ return x      // Return
 
 ---
 
-## ⚡ Unit 8: Code Optimization
+## Unit 8: Code Optimization
 
 ### Local Optimizations
 | Technique | Before | After |
@@ -200,7 +200,7 @@ return x      // Return
 
 ---
 
-## 💻 Unit 9: Code Generation
+## Unit 9: Code Generation
 
 ### Register/Address Descriptors
 - **Register Desc**: Which variables are in each register
@@ -218,7 +218,7 @@ return x      // Return
 
 ---
 
-## 🏃 Unit 10: Runtime Environment
+## Unit 10: Runtime Environment
 
 ### Memory Layout
 ```
@@ -256,7 +256,7 @@ Low  → [Code]
 
 ---
 
-## 📚 Important Formulas
+## Important Formulas
 
 ### Array Address Calculation
 ```

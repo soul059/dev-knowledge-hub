@@ -4,6 +4,10 @@
 
 A **language translator** is a software that converts a program written in one language (source language) to another language (target language).
 
+Problem: Humans write in high-level languages, but machines only understand binary.
+
+Solution: A translator converts readable source code into machine-executable code.
+
 ### The Fundamental Problem
 
 Humans prefer to write programs in **high-level languages** (like C, Java, Python) because they are:
@@ -108,6 +112,10 @@ An **assembler** translates assembly language programs into machine code.
 ## 1.4 Structure of a Compiler
 
 A compiler is logically divided into two major parts:
+
+Problem: Compilation is complex and must be organized into manageable tasks.
+
+Solution: Split the compiler into analysis (front end) and synthesis (back end) phases with clear responsibilities.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐

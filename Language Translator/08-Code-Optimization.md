@@ -4,6 +4,10 @@
 
 **Code Optimization** transforms the program to improve its efficiency while preserving its meaning (semantics).
 
+Problem: Correct code can still be slow, large, or power-hungry.
+
+Solution: Optimization transforms code to improve performance without changing observable behavior.
+
 ### Goals of Optimization
 
 1. **Reduce execution time** (speed)
@@ -56,6 +60,10 @@ A **basic block** is a maximal sequence of consecutive instructions such that:
 1. Control enters only at the first instruction
 2. Control leaves only at the last instruction
 3. No jumps into or out of the middle
+
+Problem: Many optimizations need a clear boundary where control flow does not jump in or out.
+
+Solution: Basic blocks provide safe regions for local analysis and optimization.
 
 ### Identifying Basic Blocks
 
@@ -124,6 +132,10 @@ A **CFG** shows the flow of control between basic blocks.
 
 **Edges** represent possible control flow between blocks.
 
+Problem: Optimizations across blocks need knowledge of all possible control paths.
+
+Solution: CFG models control flow so analyses can propagate information correctly.
+
 ---
 
 ## 8.3 Local Optimization (Within Basic Blocks)
@@ -131,6 +143,10 @@ A **CFG** shows the flow of control between basic blocks.
 ### 8.3.1 Common Subexpression Elimination (CSE)
 
 If an expression is computed more than once and operands haven't changed, reuse the first result.
+
+Problem: Redundant computations waste time.
+
+Solution: Reuse previously computed values within a block.
 
 **Before:**
 ```
@@ -152,6 +168,10 @@ t4 = t2 + t3
 
 After `x = y`, replace subsequent uses of `x` with `y` (until `x` or `y` is redefined).
 
+Problem: Temporary copies add unnecessary indirections.
+
+Solution: Replace copies with original values when safe.
+
 **Before:**
 ```
 t1 = a + b
@@ -172,6 +192,10 @@ t4 = t1 + d   ← Use t1 instead of t2
 
 Remove code whose result is never used.
 
+Problem: Some computations have no effect on program output.
+
+Solution: Remove them to reduce time and size.
+
 **Before:**
 ```
 t1 = a + b
@@ -191,6 +215,10 @@ x = t3
 
 Evaluate constant expressions at compile time.
 
+Problem: Runtime evaluation of constant expressions is wasteful.
+
+Solution: Precompute constants during compilation.
+
 **Before:**
 ```
 t1 = 3 + 5
@@ -208,6 +236,10 @@ x = 16
 ### 8.3.5 Constant Propagation
 
 Replace variables with their constant values when known.
+
+Problem: Values known at compile time are still treated as variables.
+
+Solution: Replace them with constants to enable further simplification.
 
 **Before:**
 ```
@@ -227,6 +259,10 @@ z = 16      ← 8 * 2
 
 Use mathematical identities to simplify.
 
+Problem: Expressions often contain neutral elements or redundant operations.
+
+Solution: Apply algebraic identities to simplify expressions.
+
 | Original | Simplified |
 |----------|------------|
 | x + 0 | x |
@@ -241,6 +277,10 @@ Use mathematical identities to simplify.
 
 Replace expensive operations with cheaper ones.
 
+Problem: Some operations are more expensive than equivalent alternatives.
+
+Solution: Replace with cheaper operations like shifts or additions.
+
 | Original | Reduced |
 |----------|---------|
 | x * 2 | x + x or x << 1 |
@@ -254,6 +294,10 @@ Replace expensive operations with cheaper ones.
 ## 8.4 DAG Representation for Optimization
 
 A **DAG** (Directed Acyclic Graph) represents expressions within a basic block, sharing common subexpressions.
+
+Problem: Local redundancies are hard to detect from linear code alone.
+
+Solution: DAG makes shared subexpressions explicit and enables reuse.
 
 ### Building a DAG
 
@@ -302,6 +346,10 @@ t4 = t3 + a
 ## 8.5 Loop Optimization
 
 Loops execute many times, so optimizing them has high impact.
+
+Problem: Small inefficiencies inside loops multiply into large costs.
+
+Solution: Move invariant code out, reduce expensive operations, and improve iteration efficiency.
 
 ### 8.5.1 Identifying Loops
 
@@ -425,6 +473,10 @@ for (i = 0; i < n; i++) {
 
 Data flow analysis propagates information about the program along control flow edges.
 
+Problem: Optimizations across blocks need global knowledge about definitions and uses.
+
+Solution: Data flow analysis computes facts that enable safe global transformations.
+
 **Components:**
 - **Domain**: Set of possible values at each point
 - **Transfer function**: How each statement affects values
@@ -523,6 +575,10 @@ An expression is **very busy** at a point if it will be evaluated on all paths f
 
 **Peephole optimization** examines a small window (peephole) of instructions and applies local transformations.
 
+Problem: Target code often contains small inefficiencies that are hard to detect globally.
+
+Solution: Peephole optimization replaces local instruction patterns with better ones.
+
 ### Common Peephole Optimizations
 
 #### 1. Redundant Load/Store Elimination
@@ -584,6 +640,10 @@ L1: return
 
 Efficiently assigning program variables to limited CPU registers.
 
+Problem: Registers are limited and memory is slow.
+
+Solution: Allocate registers to the most useful variables and spill others when needed.
+
 ### 8.8.1 The Problem
 
 - Programs use many variables
@@ -641,6 +701,10 @@ Live ranges:
 
 Reorder instructions to reduce pipeline stalls and improve parallelism.
 
+Problem: Dependencies can cause pipeline stalls in modern processors.
+
+Solution: Reorder independent instructions to keep the pipeline busy.
+
 ### The Problem
 
 Modern processors have pipelines where different stages of instruction execution overlap. Dependencies can cause stalls.
@@ -675,6 +739,10 @@ ADD R4, R3, 2           (b is ready now)
 ### 8.10.1 Instruction Selection
 
 Choose the best instruction for an operation based on target machine.
+
+Problem: Different architectures offer different instruction costs and capabilities.
+
+Solution: Select target-specific instructions that minimize cost.
 
 **Example (x86):**
 ```
@@ -760,6 +828,8 @@ Options:
 6. **Register Allocation** uses graph coloring
 
 7. **Peephole Optimization** examines small windows of code
+
+Simple takeaway: Optimization removes redundant work and uses machine resources efficiently without changing program behavior.
 
 ---
 
