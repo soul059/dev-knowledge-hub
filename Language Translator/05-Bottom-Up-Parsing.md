@@ -418,80 +418,344 @@ S → CC•
 
 ---
 
-## 5.8 SLR(1) Parsing
+## 5.8 LR(0) Parsing Table Construction
+
+### Complete LR(0) States for Grammar
+
+**Grammar:**
+```
+(0) S' → S
+(1) S  → CC
+(2) C  → cC
+(3) C  → d
+```
+
+**All States with Items:**
+
+| State | Items |
+|-------|-------|
+| I₀ | S' → •S, S → •CC, C → •cC, C → •d |
+| I₁ | S' → S• |
+| I₂ | S → C•C, C → •cC, C → •d |
+| I₃ | C → c•C, C → •cC, C → •d |
+| I₄ | C → d• |
+| I₅ | S → CC• |
+| I₆ | C → cC• |
+
+### LR(0) Table Construction Rules
+
+**For each state I:**
+
+1. **Shift**: If A → α•aβ is in I and GOTO(I, a) = Iⱼ (a is terminal):
+   - Set ACTION[I, a] = "shift j" (sj)
+
+2. **Reduce**: If A → α• is in I (dot at end, A ≠ S'):
+   - Set ACTION[I, a] = "reduce A → α" for **ALL terminals** (including $)
+
+3. **Accept**: If S' → S• is in I:
+   - Set ACTION[I, $] = "accept" (acc)
+
+4. **GOTO**: If GOTO(I, A) = Iⱼ for non-terminal A:
+   - Set GOTO[I, A] = j
+
+### LR(0) Parsing Table
+
+```
+┌───────┬───────────────────────────┬───────────┐
+│ State │          ACTION           │   GOTO    │
+│       ├─────────┬─────────┬───────┼─────┬─────┤
+│       │    c    │    d    │   $   │  S  │  C  │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   0   │   s3    │   s4    │       │  1  │  2  │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   1   │         │         │  acc  │     │     │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   2   │   s3    │   s4    │       │     │  5  │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   3   │   s3    │   s4    │       │     │  6  │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   4   │   r3    │   r3    │  r3   │     │     │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   5   │   r1    │   r1    │  r1   │     │     │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   6   │   r2    │   r2    │  r2   │     │     │
+└───────┴─────────┴─────────┴───────┴─────┴─────┘
+
+Legend: s3 = shift to state 3, r2 = reduce by production 2
+Productions: (1) S → CC  (2) C → cC  (3) C → d
+```
+
+### LR(0) String Parsing Example
+
+**Parse the string: `cdd`**
+
+| Step | Stack | Input | Action | Explanation |
+|------|-------|-------|--------|-------------|
+| 1 | 0 | cdd$ | s3 | ACTION[0,c]=s3, shift c, goto state 3 |
+| 2 | 0 c 3 | dd$ | s4 | ACTION[3,d]=s4, shift d, goto state 4 |
+| 3 | 0 c 3 d 4 | d$ | r3 | ACTION[4,d]=r3, reduce C→d |
+| 4 | 0 c 3 C 6 | d$ | r2 | Pop d,4; GOTO[3,C]=6, reduce C→cC |
+| 5 | 0 C 2 | d$ | s4 | Pop c,3,C,6; GOTO[0,C]=2, shift d |
+| 6 | 0 C 2 d 4 | $ | r3 | ACTION[4,$]=r3, reduce C→d |
+| 7 | 0 C 2 C 5 | $ | r1 | Pop d,4; GOTO[2,C]=5, reduce S→CC |
+| 8 | 0 S 1 | $ | acc | Pop C,2,C,5; GOTO[0,S]=1, ACCEPT! |
+
+### Detailed Step-by-Step Trace
+
+**Step 1-2: Shifting**
+```
+Stack: 0           Input: cdd$    → Shift c
+Stack: 0 c 3       Input: dd$     → Shift d
+Stack: 0 c 3 d 4   Input: d$
+```
+
+**Step 3-4: First Reduction Sequence**
+```
+Stack: 0 c 3 d 4   Input: d$
+- ACTION[4, d] = r3 (reduce C → d)
+- Pop 2 symbols (d, 4), now top = state 3
+- GOTO[3, C] = 6
+- Push C and 6
+
+Stack: 0 c 3 C 6   Input: d$
+- ACTION[6, d] = r2 (reduce C → cC)
+- Pop 4 symbols (c, 3, C, 6), now top = state 0
+- GOTO[0, C] = 2
+- Push C and 2
+
+Stack: 0 C 2       Input: d$
+```
+
+**Step 5-6: Second Reduction Sequence**
+```
+Stack: 0 C 2       Input: d$
+- ACTION[2, d] = s4 (shift d)
+Stack: 0 C 2 d 4   Input: $
+
+- ACTION[4, $] = r3 (reduce C → d)
+- Pop 2 symbols (d, 4), now top = state 2
+- GOTO[2, C] = 5
+- Push C and 5
+
+Stack: 0 C 2 C 5   Input: $
+```
+
+**Step 7-8: Final Reduction and Accept**
+```
+Stack: 0 C 2 C 5   Input: $
+- ACTION[5, $] = r1 (reduce S → CC)
+- Pop 4 symbols (C, 2, C, 5), now top = state 0
+- GOTO[0, S] = 1
+- Push S and 1
+
+Stack: 0 S 1       Input: $
+- ACTION[1, $] = acc → ACCEPT!
+```
+
+### LR(0) Conflicts
+
+**LR(0) Grammar** has **no conflicts** if:
+- No state has both shift and reduce items
+- No state has multiple reduce items
+
+**Example of LR(0) Conflict:**
+
+Grammar: E → E + T | T, T → id
+
+State may contain:
+```
+E → E + T•    (reduce)
+E → E• + T    (shift on +)
+```
+
+This is a **shift-reduce conflict** - LR(0) cannot handle this grammar!
+
+---
+
+## 5.9 SLR(1) Parsing
 
 **SLR(1)** (Simple LR) uses LR(0) items plus FOLLOW sets to resolve conflicts.
 
-### SLR Parsing Table Construction
+### Key Difference from LR(0)
+
+| LR(0) | SLR(1) |
+|-------|--------|
+| Reduce on ALL terminals | Reduce only on FOLLOW(A) |
+| More conflicts | Fewer conflicts |
+| Weaker | Stronger |
+
+### SLR(1) Table Construction Rules
 
 **For each state I in the canonical collection:**
 
-1. If A → α•aβ is in I and GOTO(I, a) = Iⱼ:
+1. **Shift**: If A → α•aβ is in I and GOTO(I, a) = Iⱼ:
    - Set ACTION[I, a] = "shift j"
 
-2. If A → α• is in I (and A ≠ S'):
-   - For all a in FOLLOW(A):
+2. **Reduce**: If A → α• is in I (and A ≠ S'):
+   - For all a in **FOLLOW(A)** only:
      - Set ACTION[I, a] = "reduce A → α"
 
-3. If S' → S• is in I:
+3. **Accept**: If S' → S• is in I:
    - Set ACTION[I, $] = "accept"
 
-4. If GOTO(I, A) = Iⱼ for non-terminal A:
+4. **GOTO**: If GOTO(I, A) = Iⱼ for non-terminal A:
    - Set GOTO[I, A] = j
 
-### SLR(1) Table Example
+### Complete SLR(1) Example
 
-For the grammar S' → S, S → CC, C → cC | d:
+**Grammar:**
+```
+(0) S' → S
+(1) S  → AA
+(2) A  → aA
+(3) A  → b
+```
 
-**FOLLOW sets:**
-- FOLLOW(S) = {$}
-- FOLLOW(C) = {c, d, $}
+**Step 1: Compute FIRST and FOLLOW Sets**
 
-**ACTION and GOTO Table:**
+| Non-terminal | FIRST | FOLLOW |
+|--------------|-------|--------|
+| S | {a, b} | {$} |
+| A | {a, b} | {a, b, $} |
+
+**Step 2: Construct LR(0) States**
+
+| State | Items |
+|-------|-------|
+| I₀ | S' → •S, S → •AA, A → •aA, A → •b |
+| I₁ | S' → S• |
+| I₂ | S → A•A, A → •aA, A → •b |
+| I₃ | A → a•A, A → •aA, A → •b |
+| I₄ | A → b• |
+| I₅ | S → AA• |
+| I₆ | A → aA• |
+
+**Step 3: Construct SLR(1) Parsing Table**
 
 ```
-┌───────┬─────────────────────────┬───────────┐
-│ State │        ACTION           │   GOTO    │
-│       ├────────┬────────┬───────┼─────┬─────┤
-│       │   c    │   d    │   $   │  S  │  C  │
-├───────┼────────┼────────┼───────┼─────┼─────┤
-│   0   │   s3   │   s4   │       │  1  │  2  │
-│   1   │        │        │  acc  │     │     │
-│   2   │   s3   │   s4   │       │     │  5  │
-│   3   │   s3   │   s4   │       │     │  6  │
-│   4   │   r3   │   r3   │  r3   │     │     │
-│   5   │        │        │  r1   │     │     │
-│   6   │   r2   │   r2   │  r2   │     │     │
-└───────┴────────┴────────┴───────┴─────┴─────┘
+┌───────┬───────────────────────────┬───────────┐
+│ State │          ACTION           │   GOTO    │
+│       ├─────────┬─────────┬───────┼─────┬─────┤
+│       │    a    │    b    │   $   │  S  │  A  │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   0   │   s3    │   s4    │       │  1  │  2  │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   1   │         │         │  acc  │     │     │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   2   │   s3    │   s4    │       │     │  5  │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   3   │   s3    │   s4    │       │     │  6  │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   4   │   r3    │   r3    │  r3   │     │     │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   5   │         │         │  r1   │     │     │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   6   │   r2    │   r2    │  r2   │     │     │
+└───────┴─────────┴─────────┴───────┴─────┴─────┘
 
-Productions: (1) S → CC  (2) C → cC  (3) C → d
+Productions: (1) S → AA  (2) A → aA  (3) A → b
+```
+
+**Table Construction Explanation:**
+
+- **State 4 (A → b•)**: Reduce by A → b on FOLLOW(A) = {a, b, $}
+- **State 5 (S → AA•)**: Reduce by S → AA on FOLLOW(S) = {$}
+- **State 6 (A → aA•)**: Reduce by A → aA on FOLLOW(A) = {a, b, $}
+
+### SLR(1) String Parsing Example
+
+**Parse the string: `aabb`**
+
+| Step | Stack | Input | Action | Explanation |
+|------|-------|-------|--------|-------------|
+| 1 | 0 | aabb$ | s3 | ACTION[0,a]=s3 |
+| 2 | 0 a 3 | abb$ | s3 | ACTION[3,a]=s3 |
+| 3 | 0 a 3 a 3 | bb$ | s4 | ACTION[3,b]=s4 |
+| 4 | 0 a 3 a 3 b 4 | b$ | r3 | ACTION[4,b]=r3, reduce A→b |
+| 5 | 0 a 3 a 3 A 6 | b$ | r2 | GOTO[3,A]=6, reduce A→aA |
+| 6 | 0 a 3 A 6 | b$ | r2 | GOTO[3,A]=6, reduce A→aA |
+| 7 | 0 A 2 | b$ | s4 | GOTO[0,A]=2, shift b |
+| 8 | 0 A 2 b 4 | $ | r3 | ACTION[4,$]=r3, reduce A→b |
+| 9 | 0 A 2 A 5 | $ | r1 | GOTO[2,A]=5, reduce S→AA |
+| 10 | 0 S 1 | $ | acc | GOTO[0,S]=1, ACCEPT! |
+
+### Detailed Step-by-Step Trace
+
+**Shifting Phase:**
+```
+Stack: 0              Input: aabb$   → Shift a, goto 3
+Stack: 0 a 3          Input: abb$    → Shift a, goto 3
+Stack: 0 a 3 a 3      Input: bb$     → Shift b, goto 4
+Stack: 0 a 3 a 3 b 4  Input: b$
+```
+
+**First Reduction Sequence:**
+```
+Stack: 0 a 3 a 3 b 4  Input: b$
+- ACTION[4, b] = r3 (reduce A → b)
+- Pop 2 symbols (b, 4), top = state 3
+- GOTO[3, A] = 6, push A and 6
+
+Stack: 0 a 3 a 3 A 6  Input: b$
+- ACTION[6, b] = r2 (reduce A → aA)
+- Pop 4 symbols (a, 3, A, 6), top = state 3
+- GOTO[3, A] = 6, push A and 6
+
+Stack: 0 a 3 A 6      Input: b$
+- ACTION[6, b] = r2 (reduce A → aA)
+- Pop 4 symbols (a, 3, A, 6), top = state 0
+- GOTO[0, A] = 2, push A and 2
+
+Stack: 0 A 2          Input: b$
+```
+
+**Second A and Final Accept:**
+```
+Stack: 0 A 2          Input: b$
+- ACTION[2, b] = s4, shift b, goto 4
+
+Stack: 0 A 2 b 4      Input: $
+- ACTION[4, $] = r3 (reduce A → b)
+- Pop 2 symbols (b, 4), top = state 2
+- GOTO[2, A] = 5, push A and 5
+
+Stack: 0 A 2 A 5      Input: $
+- ACTION[5, $] = r1 (reduce S → AA)
+- Pop 4 symbols (A, 2, A, 5), top = state 0
+- GOTO[0, S] = 1, push S and 1
+
+Stack: 0 S 1          Input: $
+- ACTION[1, $] = acc → ACCEPT!
 ```
 
 ### Limitations of SLR(1)
 
 SLR uses FOLLOW sets, which may be too imprecise:
 
+**Example Grammar where SLR fails:**
 ```
-Grammar:
 S → L = R | R
 L → * R | id
 R → L
-
-For state with: R → L•
-
-SLR says: Reduce on all of FOLLOW(R) = {=, $}
-
-But when we have: id = ...
-- After reducing id to L, we're in state with L = R•L
-- The = is coming next, but we shouldn't reduce R → L here
-- We should shift the =
 ```
+
+**Problem State:**
+```
+State I₂: S → L•= R
+          R → L•
+```
+
+- FOLLOW(R) = {=, $}
+- SLR says: Reduce R → L on both = and $
+- But on input `id = ...`, we should SHIFT =, not reduce!
+
+**Conflict:** ACTION[I₂, =] = shift AND reduce → SLR conflict!
 
 **SLR cannot handle all grammars that CLR/LALR can.**
 
 ---
 
-## 5.9 CLR(1) Parsing (Canonical LR)
+## 5.10 CLR(1) Parsing (Canonical LR)
 
 **CLR(1)** uses LR(1) items which include lookahead information.
 
@@ -532,20 +796,30 @@ GOTO(I, X):
     return CLOSURE(J)
 ```
 
-### CLR(1) Example
+### Complete CLR(1) Example
 
 **Grammar:**
 ```
-S' → S
-S → CC
-C → cC | d
+(0) S' → S
+(1) S  → CC
+(2) C  → cC
+(3) C  → d
 ```
 
-**State I₀:**
+**Step 1: Compute FIRST Sets**
+
+| Non-terminal | FIRST |
+|--------------|-------|
+| S | {c, d} |
+| C | {c, d} |
+
+**Step 2: Construct All LR(1) States**
+
+**State I₀:** CLOSURE({[S' → •S, $]})
 ```
 [S' → •S, $]
 [S  → •CC, $]
-[C  → •cC, c/d]   (FIRST(C$) = {c, d})
+[C  → •cC, c/d]    ← FIRST(C$) = {c, d}
 [C  → •d, c/d]
 ```
 
@@ -557,27 +831,167 @@ C → cC | d
 **State I₂:** GOTO(I₀, C)
 ```
 [S → C•C, $]
-[C → •cC, $]     (FIRST($) = {$})
+[C → •cC, $]       ← FIRST($) = {$}
 [C → •d, $]
 ```
 
-Notice: Different lookaheads create different states!
+**State I₃:** GOTO(I₀, c)
+```
+[C → c•C, c/d]
+[C → •cC, c/d]
+[C → •d, c/d]
+```
 
-### CLR(1) Table Construction
+**State I₄:** GOTO(I₀, d)
+```
+[C → d•, c/d]      ← Lookahead: c, d
+```
 
-Same as SLR, but reduce action uses lookahead from item:
+**State I₅:** GOTO(I₂, C)
+```
+[S → CC•, $]
+```
+
+**State I₆:** GOTO(I₂, c)
+```
+[C → c•C, $]
+[C → •cC, $]
+[C → •d, $]
+```
+
+**State I₇:** GOTO(I₂, d)
+```
+[C → d•, $]        ← Lookahead: $ only
+```
+
+**State I₈:** GOTO(I₃, C)
+```
+[C → cC•, c/d]
+```
+
+**State I₉:** GOTO(I₆, C)
+```
+[C → cC•, $]
+```
+
+**Note:** I₃ and I₆ have same core but different lookaheads!
+**Note:** I₄ and I₇ have same core but different lookaheads!
+**Note:** I₈ and I₉ have same core but different lookaheads!
+
+**Step 3: CLR(1) Parsing Table Construction Rules**
 
 For item [A → α•, a]:
 - Set ACTION[I, a] = "reduce A → α"
-- Only for the specific lookahead a, not all of FOLLOW(A)
+- **Only for the specific lookahead a**, not all of FOLLOW(A)
 
-### CLR Power vs Table Size
+**CLR(1) Parsing Table:**
 
-**CLR(1)** can parse more grammars than SLR(1), but tables can be **very large** because states are split based on lookahead.
+```
+┌───────┬───────────────────────────┬───────────┐
+│ State │          ACTION           │   GOTO    │
+│       ├─────────┬─────────┬───────┼─────┬─────┤
+│       │    c    │    d    │   $   │  S  │  C  │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   0   │   s3    │   s4    │       │  1  │  2  │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   1   │         │         │  acc  │     │     │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   2   │   s6    │   s7    │       │     │  5  │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   3   │   s3    │   s4    │       │     │  8  │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   4   │   r3    │   r3    │       │     │     │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   5   │         │         │  r1   │     │     │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   6   │   s6    │   s7    │       │     │  9  │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   7   │         │         │  r3   │     │     │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   8   │   r2    │   r2    │       │     │     │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   9   │         │         │  r2   │     │     │
+└───────┴─────────┴─────────┴───────┴─────┴─────┘
+
+Productions: (1) S → CC  (2) C → cC  (3) C → d
+```
+
+**Key Observations:**
+- State 4: Reduce C→d on lookahead {c, d} only
+- State 7: Reduce C→d on lookahead {$} only
+- State 8: Reduce C→cC on lookahead {c, d} only
+- State 9: Reduce C→cC on lookahead {$} only
+
+### CLR(1) String Parsing Example
+
+**Parse the string: `cdd`**
+
+| Step | Stack | Input | Action | Explanation |
+|------|-------|-------|--------|-------------|
+| 1 | 0 | cdd$ | s3 | ACTION[0,c]=s3 |
+| 2 | 0 c 3 | dd$ | s4 | ACTION[3,d]=s4 |
+| 3 | 0 c 3 d 4 | d$ | r3 | ACTION[4,d]=r3, reduce C→d |
+| 4 | 0 c 3 C 8 | d$ | r2 | GOTO[3,C]=8, ACTION[8,d]=r2 |
+| 5 | 0 C 2 | d$ | s7 | GOTO[0,C]=2, ACTION[2,d]=s7 |
+| 6 | 0 C 2 d 7 | $ | r3 | ACTION[7,$]=r3, reduce C→d |
+| 7 | 0 C 2 C 5 | $ | r1 | GOTO[2,C]=5, ACTION[5,$]=r1 |
+| 8 | 0 S 1 | $ | acc | GOTO[0,S]=1, ACCEPT! |
+
+### Detailed Step-by-Step Trace
+
+**Shifting and First Reductions:**
+```
+Stack: 0            Input: cdd$
+- ACTION[0, c] = s3 → Shift c, goto 3
+
+Stack: 0 c 3        Input: dd$
+- ACTION[3, d] = s4 → Shift d, goto 4
+
+Stack: 0 c 3 d 4    Input: d$
+- ACTION[4, d] = r3 (reduce C → d, lookahead is d)
+- Pop 2 symbols (d, 4), top = state 3
+- GOTO[3, C] = 8, push C and 8
+
+Stack: 0 c 3 C 8    Input: d$
+- ACTION[8, d] = r2 (reduce C → cC, lookahead is d)
+- Pop 4 symbols (c, 3, C, 8), top = state 0
+- GOTO[0, C] = 2, push C and 2
+```
+
+**Second C and Accept:**
+```
+Stack: 0 C 2        Input: d$
+- ACTION[2, d] = s7 → Shift d, goto 7
+
+Stack: 0 C 2 d 7    Input: $
+- ACTION[7, $] = r3 (reduce C → d, lookahead is $)
+- Pop 2 symbols (d, 7), top = state 2
+- GOTO[2, C] = 5, push C and 5
+
+Stack: 0 C 2 C 5    Input: $
+- ACTION[5, $] = r1 (reduce S → CC)
+- Pop 4 symbols (C, 2, C, 5), top = state 0
+- GOTO[0, S] = 1, push S and 1
+
+Stack: 0 S 1        Input: $
+- ACTION[1, $] = acc → ACCEPT!
+```
+
+### CLR(1) Power vs Table Size
+
+**Advantages:**
+- Most powerful LR parsing method
+- Can handle more grammars than SLR or LALR
+- Precise lookahead prevents spurious conflicts
+
+**Disadvantages:**
+- **Very large parsing tables** (states split by lookahead)
+- For this small grammar: 10 CLR states vs 7 SLR states
+- Real grammars can have 10x more CLR states than LALR
 
 ---
 
-## 5.10 LALR(1) Parsing
+## 5.11 LALR(1) Parsing
 
 **LALR(1)** (Look-Ahead LR) combines the power of CLR(1) with the table size of SLR(1).
 
@@ -585,51 +999,241 @@ For item [A → α•, a]:
 
 Many CLR(1) states differ only in lookahead symbols but have the same **core** (LR(0) part).
 
-### Merging States
+### What is a Core?
 
-States with the same core are merged:
-- Combine their lookahead sets
-- Results in fewer states
+The **core** of an LR(1) item set is the set of LR(0) items (ignoring lookaheads).
 
 **Example:**
 ```
-CLR State I₄: [C → d•, c/d]
-CLR State I₇: [C → d•, $]
+CLR State I₄: [C → d•, c/d]    Core: {C → d•}
+CLR State I₇: [C → d•, $]      Core: {C → d•}
 
-LALR merges to: [C → d•, c/d/$]
+Same core! → Can be merged
 ```
 
-### LALR Construction (from CLR)
+### LALR(1) Construction Method
 
+**Method 1: From CLR (Merging)**
 1. Build CLR(1) canonical collection
-2. Find states with same cores
-3. Merge such states (union lookaheads)
+2. Find states with identical cores
+3. Merge such states (union their lookaheads)
 4. Build parsing table from merged states
 
-### LALR vs SLR vs CLR
+**Method 2: Direct Construction (Efficient)**
+- Build LR(0) automaton
+- Propagate lookaheads through the automaton
+- More efficient for large grammars
+
+### Complete LALR(1) Example
+
+**Grammar:**
+```
+(0) S' → S
+(1) S  → CC
+(2) C  → cC
+(3) C  → d
+```
+
+**Step 1: Identify CLR States with Same Cores**
+
+| CLR States | Core | Merged LALR State |
+|------------|------|-------------------|
+| I₀ | S'→•S, S→•CC, C→•cC, C→•d | I₀ |
+| I₁ | S'→S• | I₁ |
+| I₂ | S→C•C, C→•cC, C→•d | I₂ |
+| I₃, I₆ | C→c•C, C→•cC, C→•d | I₃₆ |
+| I₄, I₇ | C→d• | I₄₇ |
+| I₅ | S→CC• | I₅ |
+| I₈, I₉ | C→cC• | I₈₉ |
+
+**Step 2: Merge Lookaheads**
+
+| LALR State | Items with Merged Lookaheads |
+|------------|------------------------------|
+| I₀ | [S'→•S,$], [S→•CC,$], [C→•cC,c/d], [C→•d,c/d] |
+| I₁ | [S'→S•,$] |
+| I₂ | [S→C•C,$], [C→•cC,$], [C→•d,$] |
+| I₃₆ | [C→c•C,c/d/$], [C→•cC,c/d/$], [C→•d,c/d/$] |
+| I₄₇ | [C→d•, c/d/$] ← Merged lookaheads |
+| I₅ | [S→CC•,$] |
+| I₈₉ | [C→cC•, c/d/$] ← Merged lookaheads |
+
+**Step 3: LALR(1) Parsing Table**
+
+```
+┌───────┬───────────────────────────┬───────────┐
+│ State │          ACTION           │   GOTO    │
+│       ├─────────┬─────────┬───────┼─────┬─────┤
+│       │    c    │    d    │   $   │  S  │  C  │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   0   │   s3    │   s4    │       │  1  │  2  │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   1   │         │         │  acc  │     │     │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   2   │   s3    │   s4    │       │     │  5  │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   3   │   s3    │   s4    │       │     │  6  │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   4   │   r3    │   r3    │  r3   │     │     │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   5   │         │         │  r1   │     │     │
+├───────┼─────────┼─────────┼───────┼─────┼─────┤
+│   6   │   r2    │   r2    │  r2   │     │     │
+└───────┴─────────┴─────────┴───────┴─────┴─────┘
+
+Productions: (1) S → CC  (2) C → cC  (3) C → d
+```
+
+**Note:** LALR table has **7 states** vs CLR's **10 states**!
+
+### LALR(1) String Parsing Example
+
+**Parse the string: `cdd`**
+
+| Step | Stack | Input | Action | Explanation |
+|------|-------|-------|--------|-------------|
+| 1 | 0 | cdd$ | s3 | ACTION[0,c]=s3 |
+| 2 | 0 c 3 | dd$ | s4 | ACTION[3,d]=s4 |
+| 3 | 0 c 3 d 4 | d$ | r3 | ACTION[4,d]=r3, reduce C→d |
+| 4 | 0 c 3 C 6 | d$ | r2 | GOTO[3,C]=6, ACTION[6,d]=r2, reduce C→cC |
+| 5 | 0 C 2 | d$ | s4 | GOTO[0,C]=2, ACTION[2,d]=s4 |
+| 6 | 0 C 2 d 4 | $ | r3 | ACTION[4,$]=r3, reduce C→d |
+| 7 | 0 C 2 C 5 | $ | r1 | GOTO[2,C]=5, ACTION[5,$]=r1, reduce S→CC |
+| 8 | 0 S 1 | $ | acc | GOTO[0,S]=1, ACCEPT! |
+
+### Detailed Step-by-Step Trace
+
+**Phase 1: Building First C**
+```
+Stack: 0              Input: cdd$
+- ACTION[0, c] = s3 → Shift c, push 3
+
+Stack: 0 c 3          Input: dd$
+- ACTION[3, d] = s4 → Shift d, push 4
+
+Stack: 0 c 3 d 4      Input: d$
+- ACTION[4, d] = r3 → Reduce C → d
+- Pop (d, 4), top = 3
+- GOTO[3, C] = 6 → Push C, 6
+
+Stack: 0 c 3 C 6      Input: d$
+- ACTION[6, d] = r2 → Reduce C → cC
+- Pop (c, 3, C, 6), top = 0
+- GOTO[0, C] = 2 → Push C, 2
+
+Stack: 0 C 2          Input: d$
+```
+
+**Phase 2: Building Second C and Accept**
+```
+Stack: 0 C 2          Input: d$
+- ACTION[2, d] = s4 → Shift d, push 4
+
+Stack: 0 C 2 d 4      Input: $
+- ACTION[4, $] = r3 → Reduce C → d
+- Pop (d, 4), top = 2
+- GOTO[2, C] = 5 → Push C, 5
+
+Stack: 0 C 2 C 5      Input: $
+- ACTION[5, $] = r1 → Reduce S → CC
+- Pop (C, 2, C, 5), top = 0
+- GOTO[0, S] = 1 → Push S, 1
+
+Stack: 0 S 1          Input: $
+- ACTION[1, $] = acc → SUCCESS!
+```
+
+### LALR vs SLR vs CLR Comparison
 
 ```
 Grammar Class Hierarchy:
 
-    SLR(1) ⊂ LALR(1) ⊂ LR(1)
+    SLR(1) ⊂ LALR(1) ⊂ CLR(1)
+    
+    CLR(1) is the largest class (most powerful)
+    SLR(1) is the smallest class (least powerful)
 ```
 
 | Aspect | SLR(1) | LALR(1) | CLR(1) |
 |--------|--------|---------|--------|
-| Table Size | Small | Medium | Large |
-| Power | Least | More | Most |
-| Conflicts | Most | Some | Fewest |
-| Tools | - | YACC, Bison | - |
+| States | Same as LR(0) | Same as LR(0) | More states |
+| Lookahead | FOLLOW sets | Precise (merged) | Precise |
+| Table Size | Smallest | Small | Largest |
+| Power | Weakest | Strong | Strongest |
+| Conflicts | Most | Fewer | Fewest |
+| Usage | Academic | **Practical (YACC)** | Rarely used |
 
-### LALR May Introduce Conflicts
+### When LALR Merging Causes Problems
 
-Merging states can introduce **reduce-reduce conflicts** that weren't in CLR.
+LALR merging can introduce **reduce-reduce conflicts** not present in CLR:
 
-However, LALR never introduces **shift-reduce conflicts** that weren't in CLR.
+**Example:**
+```
+Grammar:
+S → aAd | bBd | aBe | bAe
+A → c
+B → c
+```
+
+**CLR States (partial):**
+```
+State Iₓ: [A → c•, d], [B → c•, e]   (from aAd, aBe paths)
+State Iᵧ: [A → c•, e], [B → c•, d]   (from bAe, bBd paths)
+```
+
+**After LALR Merging:**
+```
+Merged: [A → c•, d/e], [B → c•, d/e]
+```
+
+**Problem:** On input 'd', should we reduce to A or B? → **Reduce-reduce conflict!**
+
+**Note:** LALR **never** introduces shift-reduce conflicts that weren't in CLR.
+
+### Practical LALR(1) Tools
+
+LALR(1) is used by most parser generators:
+- **YACC** (Yet Another Compiler Compiler)
+- **Bison** (GNU version of YACC)
+- **PLY** (Python Lex-Yacc)
+- **CUP** (Java)
 
 ---
 
-## 5.11 Operator Precedence Parsing
+## 5.12 Comparison of All LR Methods
+
+### Summary Table
+
+| Feature | LR(0) | SLR(1) | LALR(1) | CLR(1) |
+|---------|-------|--------|---------|--------|
+| Lookahead | None | FOLLOW | Precise (merged) | Precise |
+| # of States | Smallest | Same as LR(0) | Same as LR(0) | Largest |
+| Table Size | Small | Small | Small | Very Large |
+| Power | Weakest | Weak | Strong | Strongest |
+| Reduce Rule | All terminals | FOLLOW(A) | Specific lookahead | Specific lookahead |
+| Practical Use | Educational | Educational | **Industry Standard** | Rarely |
+
+### Conflict Resolution Comparison
+
+**Given state with item: A → α•**
+
+| Method | Reduce ACTION on |
+|--------|------------------|
+| LR(0) | All terminals |
+| SLR(1) | All of FOLLOW(A) |
+| LALR(1) | Precise lookaheads (merged from CLR) |
+| CLR(1) | Exact lookahead from LR(1) item |
+
+### When to Use Which?
+
+1. **LR(0)**: Only for learning concepts
+2. **SLR(1)**: Simple grammars, academic exercises
+3. **LALR(1)**: **Production compilers** (best balance)
+4. **CLR(1)**: When LALR has conflicts (very rare)
+
+---
+
+## 5.13 Operator Precedence Parsing
 
 **Operator Precedence Parsing** is a simple bottom-up technique for expressions with operators.
 
@@ -691,7 +1295,7 @@ while not (stack = $ and input = $):
 
 ---
 
-## 5.12 YACC/Bison - Parser Generators
+## 5.14 YACC/Bison - Parser Generators
 
 **YACC** (Yet Another Compiler Compiler) generates LALR(1) parsers from grammar specifications.
 
@@ -760,7 +1364,7 @@ void yyerror(char *s) {
 
 ---
 
-## 5.13 Error Recovery in LR Parsing
+## 5.15 Error Recovery in LR Parsing
 
 ### Panic Mode
 
@@ -781,7 +1385,7 @@ The `error` token matches any sequence of erroneous input.
 
 ---
 
-## 5.14 Summary
+## 5.16 Summary
 
 ### Key Concepts:
 
