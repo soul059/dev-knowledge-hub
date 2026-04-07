@@ -73,6 +73,46 @@ Linux is an open-source, Unix-like operating system that powers everything from 
 - Error handling
 - Practical scripting examples
 
+### 9. [Linux Security Hardening](09-linux-security-hardening.md)
+- Security fundamentals and defense in depth
+- User and access security
+- SSH hardening
+- Firewall configuration (UFW, iptables, nftables)
+- File system security and ACLs
+- Kernel hardening with sysctl
+- Service hardening with systemd
+- Audit and monitoring (auditd, logging)
+- Intrusion detection (AIDE, rkhunter)
+- Security automation
+
+### 10. [Systemd Deep Dive](10-systemd-deep-dive.md)
+- Unit files and types
+- Service management and creation
+- Timers (cron alternative)
+- Targets and boot process
+- Journald logging
+- Resource control with cgroups
+- Socket activation
+- Troubleshooting systemd
+
+### 11. [Containers Basics](11-containers-basics.md)
+- Container fundamentals (namespaces, cgroups)
+- Docker installation and setup
+- Images, containers, and Dockerfile
+- Docker networking and volumes
+- Docker Compose
+- Podman (rootless alternative)
+- Container security best practices
+
+### 12. [Performance Tuning](12-performance-tuning.md)
+- Performance fundamentals (USE method)
+- CPU, memory, disk, and network optimization
+- Process performance and limits
+- Kernel tuning with sysctl
+- Application profiling (strace, perf, valgrind)
+- Benchmarking tools
+- Performance monitoring
+
 ## Learning Path
 
 ### Beginner Level
